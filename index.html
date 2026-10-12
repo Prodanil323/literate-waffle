@@ -1,0 +1,1262 @@
+<!doctype html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Personal Tracker</title>
+<meta name="description" content="Personal weekly routine tracker.">
+<meta name="theme-color" content="#07243A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Personal Tracker">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
+<style>
+/* Layout: a gradient hero per screen with a wavy edge, then raised 3D tiles on a deep navy base.
+   Each weekday has its own gradient; task tiles cycle through the same set for colour. */
+:root{
+  --bg:#D9F1F8; --bg-deep:#B8E3F0; --bg2:rgba(255,255,255,.74); --sheet:#F4FBFD; --raise:rgba(255,255,255,.55);
+  --ink:#0B2B3C; --soft:#3F6677; --muted:#7EA1B0; --line:rgba(11,43,60,.10); --onhero:#0B2B3C;
+  --sh:0 10px 26px rgba(8,60,90,.14), 0 2px 5px rgba(8,60,90,.08);
+  --sh-lo:0 4px 10px rgba(8,60,90,.10);
+  --hi:inset 0 1px 0 rgba(255,255,255,.85), inset 0 0 0 1px rgba(255,255,255,.55);
+  --well:inset 0 2px 5px rgba(8,60,90,.12);
+  --water1:#5ED6F2; --water2:#1C7FB8; --warn:#F2545B; --good:#14B8A6;
+  --g1:#22D3EE; --g2:#0E7FC0;
+  --font:"Nunito",-apple-system,system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#082236; --bg-deep:#04131F; --bg2:rgba(6,30,48,.58); --sheet:#0E2D44; --raise:rgba(255,255,255,.07);
+    --ink:#E8F7FD; --soft:#9CC3D3; --muted:#5F8799; --line:rgba(255,255,255,.08); --onhero:#E8F7FD;
+    --sh:0 12px 28px rgba(0,8,16,.45), 0 2px 5px rgba(0,8,16,.3);
+    --sh-lo:0 5px 12px rgba(0,8,16,.35);
+    --hi:inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.07);
+    --well:inset 0 2px 6px rgba(0,8,16,.45);
+    --water1:#38C6EE; --water2:#0B5F94;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#082236; --bg-deep:#04131F; --bg2:rgba(6,30,48,.58); --sheet:#0E2D44; --raise:rgba(255,255,255,.07);
+  --ink:#E8F7FD; --soft:#9CC3D3; --muted:#5F8799; --line:rgba(255,255,255,.08); --onhero:#E8F7FD;
+  --sh:0 12px 28px rgba(0,8,16,.45), 0 2px 5px rgba(0,8,16,.3);
+  --sh-lo:0 5px 12px rgba(0,8,16,.35);
+  --hi:inset 0 1px 0 rgba(255,255,255,.10), inset 0 0 0 1px rgba(255,255,255,.07);
+  --well:inset 0 2px 6px rgba(0,8,16,.45);
+  --water1:#38C6EE; --water2:#0B5F94;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:linear-gradient(180deg,var(--bg),var(--bg-deep)) fixed;background-color:var(--bg);color:var(--ink);font:600 17px/1.4 var(--font);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+input,textarea,select{font:inherit;font-size:17px;font-weight:600;color:var(--ink);background:var(--raise);
+  border:0;border-radius:14px;padding:12px 14px;width:100%;box-shadow:var(--well)}
+textarea{min-height:96px;resize:vertical;line-height:1.45}
+input:focus,textarea:focus{outline:2px solid var(--g1);outline-offset:1px}
+button:focus-visible{outline:2px solid var(--g1);outline-offset:2px}
+::placeholder{color:var(--muted)}
+.page{max-width:560px;margin:0 auto;min-height:100vh;padding:0 16px calc(env(safe-area-inset-bottom) + 110px)}
+
+/* hero */
+.hero{position:relative;padding:calc(env(safe-area-inset-top) + 20px) 4px 18px;color:var(--onhero)}
+.kicker{font-size:15px;font-weight:900;letter-spacing:.02em;color:var(--ink);text-shadow:0 1px 8px rgba(0,0,0,.2)}
+.herorow{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:14px;position:relative;z-index:1}
+h1{font:900 34px/1.05 var(--font);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.herosub{font-size:15px;font-weight:700;opacity:.9;margin-top:6px}
+.count{display:inline-block;font:900 22px var(--font);background:var(--raise);padding:6px 12px;border-radius:14px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.count.bump{animation:bump .45s ease}
+@keyframes bump{0%{transform:scale(1)}35%{transform:scale(1.3)}100%{transform:scale(1)}}
+.weeknav{display:flex;align-items:center;gap:6px;margin-top:16px;position:relative;z-index:1;flex-wrap:wrap}
+.weeknav .wk{font-size:14px;font-weight:700}
+.arrow{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-size:22px;font-weight:800;background:var(--raise);box-shadow:var(--hi)}
+.arrow:active{transform:scale(.95)}
+.chip{font-size:13px;font-weight:800;padding:8px 12px;border-radius:12px;background:var(--raise);box-shadow:var(--hi);white-space:nowrap}
+
+/* 3D surfaces */
+.card{background:var(--bg2);border-radius:22px;box-shadow:var(--sh),var(--hi);overflow:hidden;-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%)}
+.lift{position:relative;z-index:2}
+h2{font:900 19px var(--font);margin:26px 4px 12px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+h2 small{font-size:14px;font-weight:700;color:var(--soft)}
+.hint{font-size:14px;font-weight:600;color:var(--soft);margin:0}
+.empty{padding:26px 20px;text-align:center;color:var(--soft);font-weight:700}
+
+/* the water behind the list, and the card at the top */
+.fluid{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none}
+.page{position:relative;z-index:1}
+h2,h1,.herosub{text-shadow:0 1px 8px rgba(0,0,0,.22)}
+.statcard{padding:18px 18px 16px;display:grid;gap:12px}
+.bpct{font:900 44px/1 var(--font);background:linear-gradient(135deg,var(--water1),var(--water2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.bpct small{font-size:24px;margin-left:2px}
+.bsub{font-size:15px;font-weight:700;color:var(--soft);margin-top:6px}
+.minis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini{background:var(--raise);border-radius:14px;padding:9px 6px;text-align:center;box-shadow:var(--well)}
+.mini b{display:block;font:900 18px var(--font)}
+.mini span{font-size:12px;font-weight:700;color:var(--soft)}
+
+/* task tiles */
+.tiles{display:grid;gap:12px}
+.tile{display:block;width:100%;background:var(--bg2);border-radius:20px;box-shadow:var(--sh),var(--hi);-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);transition:transform .12s, box-shadow .12s}
+.trow{display:flex;align-items:center;gap:14px;width:100%;min-height:66px;padding:12px 16px}
+button.trow:active,button.tile:active{transform:scale(.985)}
+.ini{flex:none;width:30px;font:900 30px/1 var(--font);text-align:center;
+  background:linear-gradient(160deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lbl{flex:1;min-width:0}
+.name{display:block;font-weight:800;font-size:17px}
+.tag{display:block;font-size:13px;font-weight:700;color:var(--soft);margin-top:1px}
+.done .name{color:var(--soft);display:inline-block;background:linear-gradient(var(--a1),var(--a1)) no-repeat 0 58%/100% 2px}
+.pop .name{animation:strike .35s ease-out}
+@keyframes strike{from{background-size:0 2px}}
+.chk{flex:none;width:32px;height:32px;border-radius:50%;position:relative;background:var(--raise);
+  box-shadow:var(--well), inset 0 0 0 2px color-mix(in srgb,var(--a1) 55%,transparent)}
+.done .chk{background:linear-gradient(140deg,var(--a1),var(--a2));box-shadow:0 4px 14px color-mix(in srgb,var(--a1) 55%,transparent), inset 0 1px 0 rgba(255,255,255,.35)}
+.done .chk::after{content:"";position:absolute;left:11px;top:6px;width:8px;height:15px;border:solid #fff;border-width:0 3.5px 3.5px 0;transform:rotate(45deg)}
+.pop .chk{animation:tickpop .45s cubic-bezier(.3,1.8,.5,1)}
+.pop .chk::after{animation:tickdraw .3s ease-out}
+.pop .chk::before{content:"";position:absolute;inset:-3px;border-radius:50%;border:2.5px solid var(--a1);animation:ring .65s ease-out forwards;pointer-events:none}
+@keyframes ring{from{transform:scale(.7);opacity:1}to{transform:scale(2.4);opacity:0}}
+.tile.pulse{animation:pulse .5s cubic-bezier(.3,1.6,.5,1), glow .8s ease-out}
+@keyframes pulse{0%{transform:scale(.97)}45%{transform:scale(1.025)}100%{transform:scale(1)}}
+@keyframes glow{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--a1) 60%,transparent),var(--sh),var(--hi)}to{box-shadow:0 0 0 18px transparent,var(--sh),var(--hi)}}
+.tiles.cheer .tile{animation:cheer .7s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i)*70ms)}
+@keyframes cheer{0%{transform:none}40%{transform:translateY(-12px) scale(1.02)}100%{transform:none}}
+.spark{position:fixed;width:7px;height:7px;border-radius:50%;z-index:30;pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.6)}
+#app.slide-l{animation:slideL .38s cubic-bezier(.2,.8,.2,1)}
+#app.slide-r{animation:slideR .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes slideL{from{transform:translateX(-30px);opacity:.15}}
+@keyframes slideR{from{transform:translateX(30px);opacity:.15}}
+.dayswitch{display:flex;align-items:center;gap:8px}
+.dayswitch .arrow{width:34px;height:34px;font-size:20px}
+.approw{display:grid;grid-template-columns:1fr 86px 42px;gap:8px;align-items:center}
+.approw input{padding:10px 12px}
+.missed small{display:block;text-transform:none;letter-spacing:0;font-size:13px;color:var(--muted);margin-top:2px}
+@keyframes tickpop{0%{transform:scale(.5)}100%{transform:scale(1)}}
+@keyframes tickdraw{from{opacity:0;transform:rotate(45deg) scale(.2)}to{opacity:1;transform:rotate(45deg) scale(1)}}
+.inset{padding:0 16px 16px 60px}
+.exlist{list-style:none;margin:0 0 4px;padding:0}
+.exlist li{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px;font-weight:700}
+.exlist li:last-child{border-bottom:0}
+.exlist .reps{font-weight:800;color:var(--a1);white-space:nowrap}
+.note{font-size:14px;font-weight:700;color:var(--soft);margin:0 0 8px}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:flex;align-items:center;gap:9px;min-height:46px;padding:7px 14px 7px 8px;border-radius:14px;background:var(--raise);box-shadow:var(--sh-lo),var(--hi);font-size:15px;font-weight:800}
+.pill .chk{width:28px;height:28px}
+.pill.done .chk::after{left:9px;top:5px;width:7px;height:13px;border-width:0 3px 3px 0}
+.pill.done{color:var(--soft)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+label.f,span.f{display:block;font-size:12px;font-weight:800;color:var(--soft);text-transform:uppercase;letter-spacing:.08em}
+label.f input,label.f textarea,label.f select{margin-top:6px;text-transform:none;letter-spacing:0}
+.boxes{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+.treat{aspect-ratio:1;max-width:100%;border-radius:14px;display:grid;place-items:center;font:900 15px var(--font);color:var(--muted);background:var(--raise);box-shadow:var(--well)}
+.treat.on{background:linear-gradient(140deg,#5ED6F2,#0E7FC0);color:#fff;box-shadow:0 4px 12px rgba(14,127,192,.4),inset 0 1px 0 rgba(255,255,255,.35)}
+.treat.pop{animation:tickpop .45s cubic-bezier(.3,1.8,.5,1)}
+.warnline{padding:10px 0 0;color:var(--warn);font-weight:800;font-size:15px}
+.lcount{font-weight:900;color:var(--soft);font-size:14px}
+details{margin:0 16px 14px 60px;font-size:15px}
+summary{color:var(--a1);font-weight:800;cursor:pointer;padding:4px 0}
+details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
+.quiet{font-size:13px;font-weight:700;color:var(--muted);margin:18px 2px 0;text-align:center}
+.btn{display:block;width:100%;min-height:54px;border-radius:18px;background:var(--bg2);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);box-shadow:var(--sh),var(--hi);font-weight:900;text-align:center;padding:14px}
+.btn:active{transform:scale(.985)}
+.btn.primary{background:linear-gradient(135deg,var(--g1),var(--g2));color:#fff;box-shadow:0 8px 20px color-mix(in srgb,var(--g1) 45%,transparent),inset 0 1px 0 rgba(255,255,255,.3)}
+.btn.danger{color:var(--warn)}
+.btn+.btn{margin-top:12px}
+.addbtn{margin-top:14px}
+.formcard{padding:16px;display:grid;gap:14px}
+.hm{display:flex;gap:10px}
+.hm label{flex:1}
+
+/* week */
+.wkrow{display:grid;grid-template-columns:40px 1fr 42px 18px;align-items:center;gap:12px;width:100%;min-height:72px;padding:12px 16px}
+.wkrow .ini{width:40px;font-size:34px}
+.wkrow .name small{display:block;font-size:13px;font-weight:700;color:var(--soft)}
+.wkrow.today{outline:2px solid color-mix(in srgb,var(--a1) 70%,transparent);outline-offset:-2px}
+.ring{width:42px;height:42px;display:block}
+.ring text{font:900 11px var(--font);fill:var(--ink)}
+.tick{color:var(--good);font-weight:900}
+
+/* stats */
+.tilegrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{padding:16px}
+.stat b{display:block;font:900 32px/1.05 var(--font);background:linear-gradient(135deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat span{font-size:13px;font-weight:800;color:var(--soft)}
+.chart{padding:16px 14px 12px}
+.cols{display:flex;align-items:flex-end;gap:8px;height:130px;padding:0 2px;border-bottom:1px solid var(--line)}
+.col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;min-width:0}
+.col i{display:block;width:100%;max-width:26px;min-height:2px;border-radius:7px 7px 0 0;
+  background:linear-gradient(180deg,var(--water1),var(--water2));opacity:.55;transition:opacity .2s}
+.col.sel i,.col.best i{opacity:1}
+.col.none i{background:var(--line);opacity:1}
+.collabels{display:flex;gap:8px;padding:6px 2px 0}
+.collabels span{flex:1;text-align:center;font-size:11px;font-weight:800;color:var(--muted);min-width:0}
+.caption{font-size:14px;font-weight:700;color:var(--soft);margin:12px 2px 0;min-height:20px}
+.caption b{color:var(--ink)}
+.hbar{padding:12px 16px;border-top:1px solid var(--line)}
+.hbar:first-child{border-top:0}
+.hbar .top{display:flex;justify-content:space-between;gap:10px;font-size:15px;font-weight:800}
+.hbar .top span:last-child{color:var(--soft)}
+.track{height:8px;border-radius:8px;background:var(--raise);box-shadow:var(--well);margin-top:8px;overflow:hidden}
+.track i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--a1),var(--a2))}
+
+/* edit */
+.ed{border-top:1px solid var(--line)}
+.ed:first-child{border-top:0}
+.edrow{display:flex;align-items:center;gap:4px;padding:8px 8px 8px 16px;min-height:62px}
+.edname{flex:1;min-width:0;padding:6px 0}
+.edname .tag{display:block}
+.ib{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:18px;font-weight:900;color:var(--soft)}
+.ib:active{background:var(--raise)}
+.ib:disabled{opacity:.25}
+.edbody{padding:4px 16px 18px;display:grid;gap:12px}
+.dpick{display:flex;gap:6px}
+.dpick button{flex:1;height:44px;border-radius:12px;font-weight:900;font-size:14px;text-align:center;background:var(--raise);box-shadow:var(--well);color:var(--soft)}
+.dpick button.on{background:linear-gradient(140deg,var(--g1),var(--g2));color:#fff;box-shadow:0 4px 10px color-mix(in srgb,var(--g1) 40%,transparent)}
+.qtags{display:flex;flex-wrap:wrap;gap:7px;margin-top:-4px}
+.qt{font-size:14px;font-weight:800;padding:8px 14px;min-height:38px;border-radius:12px;background:var(--raise);box-shadow:var(--well);color:var(--soft)}
+.qt.on{background:linear-gradient(140deg,var(--g1),var(--g2));color:#fff;box-shadow:none}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.kinds button{min-height:48px;border-radius:14px;text-align:center;font-weight:800;background:var(--raise);box-shadow:var(--well)}
+.kinds button.on{background:linear-gradient(140deg,var(--g1),var(--g2));color:#fff;box-shadow:none}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-top:1px solid var(--line)}
+.setrow:first-child{border-top:0}
+.setrow small{display:block;font-size:12px;font-weight:700;color:var(--soft)}
+.seg{display:flex;flex:none;border-radius:14px;background:var(--raise);box-shadow:var(--well);padding:3px}
+.seg button{min-height:38px;padding:0 13px;font-size:14px;font-weight:800;border-radius:11px;color:var(--soft)}
+.seg button.on{background:linear-gradient(140deg,var(--g1),var(--g2));color:#fff}
+
+/* tab bar */
+.tabs{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:5;display:flex;justify-content:center}
+.tabs .in{display:flex;width:100%;max-width:520px;background:var(--bg2);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);border-radius:24px;box-shadow:0 14px 34px rgba(0,0,0,.35),var(--hi);padding:6px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border-radius:18px;font-size:12px;font-weight:800;color:var(--muted);text-align:center}
+.tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab.on{color:#fff;background:linear-gradient(140deg,var(--g1),var(--g2));box-shadow:0 6px 14px color-mix(in srgb,var(--g1) 40%,transparent)}
+
+/* overlays */
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translate(-50%,20px);opacity:0;
+  background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:14px;font-size:15px;font-weight:800;transition:.25s;pointer-events:none;z-index:30;max-width:88vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.modal{position:fixed;inset:0;background:rgba(10,12,22,.55);display:flex;align-items:flex-end;justify-content:center;z-index:10;padding:12px;padding-bottom:calc(env(safe-area-inset-bottom) + 12px)}
+.sheet{background:var(--sheet);border-radius:26px;padding:22px;max-width:520px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 -10px 40px rgba(0,0,0,.35)}
+.sheet h3{font:900 20px var(--font);margin:0 0 14px}
+.sheet p{margin:0 0 16px;font-weight:700}
+.sheet p.hint{font-size:14px;margin:0}
+.formgrid{display:grid;gap:14px;margin-bottom:18px}
+@media (prefers-reduced-motion: reduce){.count.bump,.pop .chk,.pop .chk::after,.pop .chk::before,.pop .name,.tile.pulse,.tiles.cheer .tile,#app.slide-l,#app.slide-r,.treat.pop,</style>
+</head>
+<body>
+<div class="page" id="page"><div id="app"></div></div>
+<nav class="tabs"><div class="in" id="tabs"></div></nav>
+<div class="toast" id="toast"></div>
+<input type="file" id="restoreFile" accept="application/json,.json" hidden>
+<script>
+(function(){
+"use strict";
+const KEY = "the-standard-weekly-v1";
+const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const ALL = [0,1,2,3,4,5,6];
+/* One gradient per weekday (Mon..Sun). Task tiles cycle through the same set. */
+const GRAD = [["#5ED6F2","#0E7FC0"],["#2DD4BF","#0E9FB8"],["#38BDF8","#1D6FD8"],["#67E8F9","#0891B2"],
+              ["#7DD3FC","#0284C7"],["#22D3EE","#127FA0"],["#99F6E4","#14B8A6"]];
+const gvars = g => `--a1:${g[0]};--a2:${g[1]}`;
+const QUICK_TAGS = ["morning","midday","arvo","evening","night"];
+
+/* Everything starts blank: every task is added by hand. */
+function defaults(){
+  return { v:6, theme:"dark", items:[], weeks:{} };
+}
+
+/* ---------- storage ---------- */
+function migrate(s){
+  if ((s.v || 1) < 2){
+    // v1 had a separate fibre list and fixed Run tracking
+    delete s.fibre;
+    if (s.workouts && s.workouts.Run) s.workouts.Run.track = true;
+    s.v = 2;
+  }
+  if (s.v < 3){
+    // v3 dropped the Lil Weekly tab and everything that hung off it
+    delete s.lilItems; delete s.goals; delete s.treats;
+    for (const k in (s.weeks || {})) delete s.weeks[k].lil;
+    s.v = 3;
+  }
+  if (s.v < 4){
+    // v4: workouts are ordinary tasks (with their own exercises and days) instead of a
+    // separate workout list + weekly plan. Turn each old workout into its own task.
+    const wos = s.workouts || {}, plan = s.plan || [], names = Object.keys(wos);
+    const idx = s.items.findIndex(i => i.type === "workout"), old = idx >= 0 ? s.items[idx] : null;
+    if (names.length){
+      const ids = {};
+      const made = names.map(name => {
+        const days = ALL.filter(d => plan[d] && plan[d].focus === name);
+        const tagDay = days.find(d => plan[d].tag);
+        ids[name] = "w" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+        return {id:ids[name], type:"workout", name, tag: tagDay != null ? plan[tagDay].tag : (old && old.tag) || "",
+                days, note: wos[name].note || "", list: wos[name].list || [], track: !!wos[name].track};
+      });
+      if (old){
+        // move ticks and distance/time from the old shared Workout task onto the day's workout
+        for (const k in s.weeks){ const days = s.weeks[k].days || {};
+          for (const d in days){
+            const rec = days[d], f = plan[d] && plan[d].focus, to = f && ids[f];
+            if (!to) continue;
+            if (rec.c && rec.c[old.id]){ rec.c[to] = true; delete rec.c[old.id]; }
+            const m = (rec.m && rec.m[old.id]) || ((rec.km || rec.time) ? {km:rec.km || "", time:rec.time || ""} : null);
+            if (m){ rec.m = rec.m || {}; rec.m[to] = m; delete rec.m[old.id]; }
+            delete rec.km; delete rec.time;
+          }
+        }
+        s.items.splice(idx, 1, ...made);
+      } else s.items.push(...made);
+    }
+    delete s.workouts; delete s.plan;
+    s.v = 4;
+  }
+  if (s.v < 5){
+    // v5: distance and time can be switched on separately
+    for (const it of s.items) if (it.track){ it.logKm = it.logTime = true; delete it.track; }
+    s.v = 5;
+  }
+  if (s.v < 6){
+    // v6: the new design is dark-first
+    if (!s.theme || s.theme === "auto") s.theme = "dark";
+    s.v = 6;
+  }
+  return s;
+}
+function load(){
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(KEY)); } catch(e){}
+  const d = defaults();
+  if (!s || typeof s !== "object") return d;
+  for (const k in d) if (s[k] === undefined) s[k] = d[k];
+  return migrate(s);
+}
+let S = load();
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ toast("Couldn't save — storage might be full"); }
+}
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{});
+
+/* ---------- dates ---------- */
+const pad = n => String(n).padStart(2,"0");
+const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const fromKey = k => { const [y,m,d] = k.split("-").map(Number); return new Date(y,m-1,d); };
+const fmt = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+const fmtShort = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}`;
+const dow = d => (d.getDay()+6)%7;
+function mondayOf(d){ const m = new Date(d.getFullYear(), d.getMonth(), d.getDate()); m.setDate(m.getDate()-dow(m)); return m; }
+function addDays(d,n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function nowInfo(){ const t = new Date(); return {week:keyOf(mondayOf(t)), day:dow(t), date:keyOf(t)}; }
+let NOW = nowInfo();
+
+/* ---------- ui state ---------- */
+const ui = {tab:"today", week:NOW.week, day:NOW.day, open:null, counts:{}, pcts:{}, just:null, event:null, statWeek:null, slide:0};
+function countHtml(bk, p){
+  const bump = ui.counts[bk] != null && ui.counts[bk] !== p.done;
+  ui.counts[bk] = p.done;
+  return `<span class="count${bump ? " bump" : ""}">${p.done}/${p.total}</span>`;
+}
+
+/* ---------- data helpers ---------- */
+function wk(key){
+  const w = S.weeks[key] || (S.weeks[key] = {});
+  w.days = w.days || {}; w.check = w.check || {};
+  return w;
+}
+function peek(key){ return S.weeks[key] || {days:{}, check:{}}; }
+function dayRec(key,d){ const w = wk(key); return w.days[d] || (w.days[d] = {c:{}}); }
+const recOn = date => { const w = S.weeks[keyOf(mondayOf(date))]; return w && w.days && w.days[dow(date)]; };
+/* The day's workout names, for the heading (e.g. "Tuesday · Push"). */
+const focusOf = d => S.items.filter(i => i.type === "workout" && i.days.includes(d)).map(i => i.name).join(" + ");
+const itemsFor = d => S.items.filter(i => i.days.includes(d));
+function tally(items, rec){
+  let done = 0, total = 0; const c = (rec && rec.c) || {};
+  for (const i of items){
+    if (i.type === "limit") continue; // a limit isn't a to-do, so it stays out of the count
+    if (i.type === "multi"){ (i.subs||[]).forEach((_,k)=>{ total++; if (c[i.id+":"+k]) done++; }); }
+    else { total++; if (c[i.id]) done++; }
+  }
+  return {done,total};
+}
+function prog(key,d){ const w = S.weeks[key]; return tally(itemsFor(d), w && w.days[d]); }
+function isFull(key,d){ const p = prog(key,d); return p.total > 0 && p.done === p.total; }
+const isFullOn = date => isFull(keyOf(mondayOf(date)), dow(date));
+function fullDaysIn(key){ return ALL.filter(d => isFull(key,d)).length; }
+function streak(){
+  let date = new Date(), n = 0;
+  if (!isFullOn(date)) date = addDays(date,-1);
+  for (let i=0; i<3000; i++){ if (!isFullOn(date)) break; n++; date = addDays(date,-1); }
+  return n;
+}
+function daysLabel(days){
+  if (days.length === 7) return "daily";
+  if (!days.length) return "not scheduled";
+  return days.slice().sort().map(d => SHORT[d]).join(" · ");
+}
+function splitEx(line){
+  const m = line.split(/\s+[—|]\s+|\s+-\s+/);
+  return m.length > 1 ? [m[0], m.slice(1).join(" ")] : [line, ""];
+}
+const lines = v => v.split("\n").map(s=>s.trim()).filter(Boolean);
+function esc(s){ return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+const uid = () => "i" + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+const round1 = n => String(Math.round(n*10)/10);
+
+/* ---------- shared bits ---------- */
+function weekNav(extra){
+  const cur = ui.week === NOW.week;
+  return `<div class="weeknav">
+    <button class="arrow" data-act="wk" data-n="-1" aria-label="Previous week">‹</button>
+    <span class="wk">Week of ${fmt(fromKey(ui.week))}</span>
+    <button class="arrow" data-act="wk" data-n="1" aria-label="Next week">›</button>
+    ${cur ? "" : `<button class="chip" data-act="wknow">this week</button>`}${extra || ""}
+  </div>`;
+}
+function hero(title, sub, right, nav){
+  return `<section class="hero">
+    <div class="kicker">Personal Tracker</div>
+    <div class="herorow"><div><h1>${title}</h1>${sub ? `<div class="herosub">${sub}</div>` : ""}</div>${right || ""}</div>
+    ${nav || ""}</section>`;
+}
+const chk = `<span class="chk" aria-hidden="true"></span>`;
+const ini = name => `<span class="ini" aria-hidden="true">${esc((name.trim()[0] || "•").toUpperCase())}</span>`;
+const tagHtml = t => t ? `<span class="tag">${esc(t)}</span>` : "";
+const ideasHtml = it => (it.ideas && it.ideas.length) ?
+  `<details><summary>ideas</summary><ul>${it.ideas.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></details>` : "";
+function ring(pct, g){
+  const r = 16, c = 2*Math.PI*r, id = "rg" + Math.random().toString(36).slice(2,7);
+  return `<svg class="ring" viewBox="0 0 42 42" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${g[0]}"/><stop offset="1" stop-color="${g[1]}"/></linearGradient></defs>
+    <circle cx="21" cy="21" r="${r}" fill="none" stroke="var(--raise)" stroke-width="5"/>
+    <circle cx="21" cy="21" r="${r}" fill="none" stroke="url(#${id})" stroke-width="5" stroke-linecap="round"
+      stroke-dasharray="${c}" stroke-dashoffset="${c*(1-pct/100)}" transform="rotate(-90 21 21)"/>
+    <text x="21" y="25" text-anchor="middle">${pct}</text></svg>`;
+}
+
+/* Distance & time for one task on one day. */
+function metricVal(rec, it, f){ const m = rec.m && rec.m[it.id]; return m && m[f] != null ? m[f] : ""; }
+const tracks = it => it.logKm || it.logTime;
+function metricFields(rec, it){
+  const a = f => `data-m="${it.id}|${f}" value="${esc(metricVal(rec,it,f))}"`;
+  return `<div class="fields">
+    ${it.logKm ? `<label class="f">Distance (km)<input type="number" inputmode="decimal" step="0.01" min="0" ${a("km")} placeholder="0.0"></label>` : ""}
+    ${it.logTime ? `<label class="f">Time (min)<input type="number" inputmode="decimal" step="0.1" min="0" ${a("time")} placeholder="0"></label>` : ""}
+  </div>`;
+}
+const popIf = k => ui.just === k ? " pop" : "";
+
+/* ---------- today ---------- */
+function tilesFor(items, rec){
+  const c = rec.c || {}, counts = rec.n || {};
+  const j = ui.just || "";
+  return items.map((it, idx) => {
+    const pulse = j === it.id || j.startsWith(it.id + ":") || j.startsWith(it.id + "#");
+    const style = `style="${gvars(GRAD[S.items.indexOf(it) % GRAD.length])};--i:${idx}"`;
+    const label = `${ini(it.name)}<span class="lbl"><span class="name">${esc(it.name)}</span>${tagHtml(it.tag)}</span>`;
+    const tickRow = `<button class="trow${c[it.id]?" done":""}${popIf(it.id)}" data-act="tick" data-k="${it.id}" aria-pressed="${!!c[it.id]}">${label}${chk}</button>`;
+    if (it.type === "multi"){
+      return `<div class="tile${pulse ? " pulse" : ""}" ${style}><div class="trow">${label}</div>
+        <div class="pills inset">${(it.subs||[]).map((s,k)=>`<button class="pill${c[it.id+":"+k]?" done":""}${popIf(it.id+":"+k)}" data-act="tick" data-k="${it.id}:${k}">${chk}${esc(s)}</button>`).join("")}</div></div>`;
+    }
+    if (it.type === "limit"){
+      const n = counts[it.id] || 0, max = it.max || 1;
+      return `<div class="tile${pulse ? " pulse" : ""}" ${style}><div class="trow">${label}<span class="lcount">${n}/${max} today</span></div>
+        <div class="inset"><div class="boxes">${Array.from({length:max}, (_,i) => `<button class="treat${i<n?" on":""}${popIf(it.id+"#"+i)}" data-act="limit" data-k="${it.id}" data-i="${i}" aria-label="${esc(it.name)} ${i+1}">${i+1}</button>`).join("")}</div>
+        ${n >= max ? `<div class="warnline">That's your ${max} for today.</div>` : ""}</div></div>`;
+    }
+    const list = it.type === "workout" ? (it.list || []) : [];
+    const extra = (it.type === "workout" && it.note ? `<p class="note">${esc(it.note)}</p>` : "") +
+      (list.length ? `<ul class="exlist">${list.map(l => { const [n,r] = splitEx(l); return `<li><span>${esc(n)}</span><span class="reps">${esc(r)}</span></li>`; }).join("")}</ul>` : "") +
+      (tracks(it) ? metricFields(rec, it) : "");
+    return `<div class="tile${pulse ? " pulse" : ""}" ${style}>${tickRow}${extra ? `<div class="inset">${extra}</div>` : ""}${ideasHtml(it)}</div>`;
+  }).join("");
+}
+
+function viewDay(){
+  const d = ui.day, key = ui.week, rec = peek(key).days[d] || {c:{}};
+  const p = prog(key,d), focus = focusOf(d);
+  const date = addDays(fromKey(key), d);
+  const isToday = keyOf(date) === NOW.date;
+  const pct = p.total ? Math.round(p.done/p.total*100) : 0;
+  ui.fluid = {key:`${key}|${d}`, frac:p.total ? p.done/p.total : 0};
+  const left = p.total - p.done;
+  const msg = !p.total ? "Add a task to start filling" : !left ? "Full to the top" : `${left} more to fill it`;
+  let tiles = tilesFor(itemsFor(d), rec);
+  if (!tiles) tiles = `<div class="card empty">${S.items.length ? `Nothing on for ${DAYS[d]}. Enjoy it.` : `Your list is empty for now.<br>Tap <b>+ Add task</b> to put in your first one, in the order you do them.`}</div>`;
+  const s = streak(), fd = fullDaysIn(key);
+  const bk = `${key}|${d}`, from = ui.pcts[bk] != null ? ui.pcts[bk] : pct; ui.pcts[bk] = pct;
+  const title = `<span class="dayswitch"><button class="arrow" data-act="day" data-n="-1" aria-label="Previous day">‹</button><span>${DAYS[d]}</span><button class="arrow" data-act="day" data-n="1" aria-label="Next day">›</button></span>`;
+  return hero(title, `${focus ? esc(focus) + " · " : ""}${fmt(date)}${isToday ? " · today" : ""}`, countHtml(bk, p),
+      weekNav(isToday ? "" : `<button class="chip" data-act="today">back to today</button>`)) + `
+    <div class="card lift statcard">
+      <div><div class="bpct"><span class="num" data-from="${from}" data-to="${pct}">${from}</span><small>%</small></div><div class="bsub">${msg}</div></div>
+      <div class="minis">
+        <div class="mini"><b>${p.done}/${p.total}</b><span>ticked</span></div>
+        <div class="mini"><b>${fd}/7</b><span>full days</span></div>
+        <div class="mini"><b>${s}</b><span>day streak</span></div>
+      </div>
+    </div>
+    <h2>${isToday ? "Today's list" : `${DAYS[d]}'s list`}</h2>
+    <div class="tiles${ui.event === "finale" ? " cheer" : ""}">${tiles}</div>
+    <button class="btn primary addbtn" data-act="addsheet">+ Add task</button>
+    ${d === 6 ? checkSection() : ""}`;
+}
+
+/* What was missed this week (so far), most-missed first. */
+function missedIn(key){
+  const mon = fromKey(key), today = fromKey(NOW.date), out = [];
+  for (const it of S.items){
+    if (it.type === "limit") continue;
+    let of = 0, missed = 0;
+    for (const d of ALL){
+      const date = addDays(mon, d);
+      if (date > today || !it.days.includes(d)) continue;
+      of++;
+      const c = ((peek(key).days[d] || {}).c) || {};
+      const done = it.type === "multi" ? (it.subs || []).every((_, k) => c[it.id + ":" + k]) : !!c[it.id];
+      if (!done) missed++;
+    }
+    if (missed) out.push({it, missed, of});
+  }
+  return out.sort((a, b) => b.missed/b.of - a.missed/a.of);
+}
+const appTotal = apps => { const h = apps.reduce((a, x) => a + (parseFloat(x.h) || 0), 0); return h ? `${round1(h)} hrs across ${apps.filter(x => parseFloat(x.h)).length} app${apps.length === 1 ? "" : "s"}` : ""; };
+/* The weekly check, shown under Sunday's list. */
+function checkSection(){
+  const ch = peek(ui.week).check || {}, apps = ch.apps || [], why = ch.why || {};
+  const missed = missedIn(ui.week);
+  return `<section id="weeklycheck">
+    <h2>Weekly check <small>${fullDaysIn(ui.week)}/7 full days</small></h2>
+    <p class="hint" style="margin:-4px 4px 12px">A quick look back before the new week.</p>
+    <div class="card formcard">
+      <span class="f">Screen time · average per day</span>
+      <div class="hm" style="margin-top:-6px">
+        <label class="f">Hours<input type="number" inputmode="numeric" min="0" max="24" data-f="check.screenH" value="${esc(ch.screenH||"")}" placeholder="0"></label>
+        <label class="f">Mins<input type="number" inputmode="numeric" min="0" max="59" data-f="check.screenM" value="${esc(ch.screenM||"")}" placeholder="0"></label>
+      </div>
+      <span class="f">Where the time went</span>
+      ${apps.map((a, i) => `<div class="approw">
+        <input type="text" data-app="${i}|name" value="${esc(a.name||"")}" placeholder="App" aria-label="App">
+        <input type="number" inputmode="decimal" step="0.5" min="0" data-app="${i}|h" value="${esc(a.h||"")}" placeholder="hrs" aria-label="Hours this week">
+        <button class="ib" data-act="appdel" data-i="${i}" aria-label="Remove">✕</button></div>`).join("")}
+      <button class="btn" data-act="appadd">+ Add app</button>
+      <p class="hint" id="appTotal">${appTotal(apps)}</p>
+      ${ch.where ? `<label class="f">Earlier notes<textarea data-f="check.where" rows="3">${esc(ch.where)}</textarea></label>` : ""}
+      <label class="f">Hit the standard most days?<textarea data-f="check.hit" placeholder="Honest answer…">${esc(ch.hit||"")}</textarea></label>
+      <span class="f">What got in the way?</span>
+      ${missed.length ? missed.map(m => `<label class="f missed">${esc(m.it.name)}<small>missed ${m.missed} of ${m.of} day${m.of === 1 ? "" : "s"}</small>
+        <input type="text" data-why="${m.it.id}" value="${esc(why[m.it.id]||"")}" placeholder="What got in the way of ${esc(m.it.name.toLowerCase())}?"></label>`).join("")
+        : `<p class="hint">Nothing missed this week. Legend.</p>`}
+      <label class="f">Anything else?<textarea data-f="check.way" placeholder="…">${esc(ch.way||"")}</textarea></label>
+    </div>
+  </section>`;
+}
+
+/* ---------- week ---------- */
+function weekTotals(key){
+  const w = S.weeks[key]; let km = 0, min = 0;
+  if (!w) return {km, min};
+  for (const d of ALL){ const rec = w.days[d]; if (!rec) continue;
+    for (const id in (rec.m || {})){ km += parseFloat(rec.m[id].km) || 0; min += parseFloat(rec.m[id].time) || 0; } }
+  return {km, min};
+}
+function viewWeek(){
+  const key = ui.week;
+  const rows = ALL.map(d => {
+    const p = prog(key,d), date = addDays(fromKey(key), d), g = GRAD[d];
+    const pct = p.total ? Math.round(p.done/p.total*100) : 0, focus = focusOf(d);
+    return `<button class="tile wkrow${keyOf(date)===NOW.date?" today":""}" style="${gvars(g)}" data-act="openday" data-d="${d}">
+      <span class="ini">${DAYS[d][0]}</span>
+      <span class="name">${DAYS[d]}<small>${fmtShort(date)}${focus ? " · " + esc(focus) : ""} · ${p.done}/${p.total}</small></span>
+      ${ring(pct, g)}<span class="tick">${p.total && p.done===p.total ? "✓" : ""}</span></button>`;
+  }).join("");
+  const tot = weekTotals(key), s = streak();
+  return hero("The week", `${fullDaysIn(key)}/7 full days${s ? ` · ${s} day streak` : ""}`, "", weekNav()) + `
+    <div class="tiles lift">${rows}</div>
+    ${tot.km || tot.min ? `<p class="quiet">${tot.km ? `${round1(tot.km)} km` : ""}${tot.km && tot.min ? " · " : ""}${tot.min ? `${round1(tot.min)} min` : ""} logged this week</p>` : ""}
+    <button class="btn addbtn" data-act="openday" data-d="6" data-check="1">Weekly check →</button>`;
+}
+
+/* ---------- stats ---------- */
+function firstDataDate(){
+  let first = null;
+  for (const k in S.weeks){
+    const days = S.weeks[k].days || {};
+    for (const d in days){
+      const r = days[d];
+      if (!r || !(Object.keys(r.c||{}).length || Object.keys(r.n||{}).length || Object.keys(r.m||{}).length)) continue;
+      const date = addDays(fromKey(k), Number(d));
+      if (!first || date < first) first = date;
+    }
+  }
+  return first;
+}
+function eachDay(from, to, fn){ for (let d = new Date(from); d <= to; d = addDays(d,1)) fn(d); }
+function viewStats(){
+  const today = fromKey(NOW.date), first = firstDataDate();
+  if (!first || !S.items.length){
+    return hero("Stats", "Your history, all in one place") + `<div class="card lift empty">Stats build up as you tick things off.<br>Check back in a few days.</div>`;
+  }
+  // headline numbers
+  let best = 0, run = 0, fullAll = 0;
+  eachDay(first, today, d => { if (isFullOn(d)){ fullAll++; run++; best = Math.max(best, run); } else if (keyOf(d) !== NOW.date) run = 0; });
+  const from30 = new Date(Math.max(first, addDays(today,-29)));
+  let done30 = 0, total30 = 0;
+  eachDay(from30, today, d => { const t = tally(itemsFor(dow(d)), recOn(d)); done30 += t.done; total30 += t.total; });
+  const rate30 = total30 ? Math.round(done30/total30*100) : 0;
+  const tiles = [["Current streak", streak(), GRAD[3]], ["Best streak", best, GRAD[5]], ["Full days", fullAll, GRAD[2]], ["Last 30 days", rate30 + "%", GRAD[1]]]
+    .map(([l,v,g]) => `<div class="card stat" style="${gvars(g)}"><b>${v}</b><span>${l}</span></div>`).join("");
+
+  // last 8 weeks, completion %
+  const thisMon = fromKey(NOW.week);
+  const weeks = Array.from({length:8}, (_,i) => {
+    const mon = addDays(thisMon, -7*(7-i)); let done = 0, total = 0, full = 0;
+    for (const d of ALL){ const date = addDays(mon, d); if (date > today || date < first) continue;
+      const t = tally(itemsFor(d), recOn(date)); done += t.done; total += t.total; if (t.total && t.done === t.total) full++; }
+    return {mon, pct: total ? Math.round(done/total*100) : null, full};
+  });
+  const sel = ui.statWeek != null ? ui.statWeek : 7, sw = weeks[sel];
+  const cols = weeks.map((w,i) => `<button class="col${w.pct==null?" none":""}${i===sel?" sel":""}" data-act="statwk" data-i="${i}" aria-label="Week of ${fmtShort(w.mon)}: ${w.pct==null?"no data":w.pct+"%"}"><i style="height:${w.pct==null?2:Math.max(3,w.pct)}%"></i></button>`).join("");
+  const colLabels = weeks.map(w => `<span>${fmtShort(w.mon)}</span>`).join("");
+
+  // day of week, last 8 weeks
+  const from56 = new Date(Math.max(first, addDays(today,-55)));
+  const dd = ALL.map(() => ({done:0,total:0}));
+  eachDay(from56, today, d => { const t = tally(itemsFor(dow(d)), recOn(d)); dd[dow(d)].done += t.done; dd[dow(d)].total += t.total; });
+  const dpct = dd.map(x => x.total ? Math.round(x.done/x.total*100) : null);
+  const bestD = dpct.reduce((b,v,i) => v != null && (b < 0 || v > dpct[b]) ? i : b, -1);
+  const dcols = dpct.map((v,i) => `<div class="col${v==null?" none":""}${i===bestD?" best":""}"><i style="height:${v==null?2:Math.max(3,v)}%"></i></div>`).join("");
+
+  // per task, last 30 days
+  const taskRows = S.items.filter(it => it.type !== "limit").map(it => {
+    let got = 0, poss = 0;
+    eachDay(from30, today, d => {
+      if (!it.days.includes(dow(d))) return;
+      const c = (recOn(d) || {}).c || {};
+      if (it.type === "multi"){ (it.subs||[]).forEach((_,k) => { poss++; if (c[it.id+":"+k]) got++; }); }
+      else { poss++; if (c[it.id]) got++; }
+    });
+    const v = poss ? Math.round(got/poss*100) : 0;
+    return `<div class="hbar" style="${gvars(GRAD[S.items.indexOf(it) % GRAD.length])}"><div class="top"><span>${esc(it.name)}</span><span>${poss ? v + "%" : "—"}</span></div><div class="track"><i style="width:${v}%"></i></div></div>`;
+  }).join("");
+
+  // distance & time
+  let km30 = 0, min30 = 0, kmAll = 0, minAll = 0, bestKm = 0;
+  eachDay(first, today, d => {
+    const m = (recOn(d) || {}).m || {}; let k = 0, t = 0;
+    for (const id in m){ k += parseFloat(m[id].km) || 0; t += parseFloat(m[id].time) || 0; }
+    kmAll += k; minAll += t; bestKm = Math.max(bestKm, k);
+    if (d >= from30){ km30 += k; min30 += t; }
+  });
+  const tracked = kmAll || minAll;
+
+  // limits
+  const limits = S.items.filter(it => it.type === "limit").map(it => {
+    let sum = 0, days = 0, hit = 0;
+    eachDay(from30, today, d => { if (!it.days.includes(dow(d))) return; days++; const n = ((recOn(d) || {}).n || {})[it.id] || 0; sum += n; if (n >= it.max) hit++; });
+    const avg = days ? sum/days : 0;
+    return `<div class="hbar" style="${gvars(GRAD[0])}"><div class="top"><span>${esc(it.name)}</span><span>${round1(avg)} a day · max ${it.max}</span></div>
+      <div class="track"><i style="width:${Math.min(100, avg/it.max*100)}%"></i></div><p class="hint" style="margin-top:6px">Hit the limit on ${hit} of ${days} days</p></div>`;
+  }).join("");
+
+  // screen time from weekly checks
+  const screen = Array.from({length:8}, (_,i) => {
+    const mon = addDays(thisMon, -7*(7-i)), ch = (S.weeks[keyOf(mon)] || {}).check || {};
+    const h = (parseFloat(ch.screenH) || 0) + (parseFloat(ch.screenM) || 0)/60;
+    return {mon, h: (ch.screenH || ch.screenM) ? h : null};
+  });
+  const maxH = Math.max(1, ...screen.map(x => x.h || 0));
+  const hasScreen = screen.some(x => x.h != null);
+
+  return hero("Stats", `Since ${fmt(first)}`) + `
+    <div class="tilegrid lift">${tiles}</div>
+
+    <h2>Last 8 weeks <small>% ticked</small></h2>
+    <div class="card chart">
+      <div class="cols">${cols}</div><div class="collabels">${colLabels}</div>
+      <p class="caption">Week of <b>${fmtShort(sw.mon)}</b>: ${sw.pct==null ? "no data yet" : `<b>${sw.pct}%</b> ticked · ${sw.full} full day${sw.full===1?"":"s"}`}</p>
+    </div>
+
+    <h2>Best day of the week</h2>
+    <div class="card chart">
+      <div class="cols" style="height:90px">${dcols}</div><div class="collabels">${ALL.map(d=>`<span>${SHORT[d][0]}</span>`).join("")}</div>
+      <p class="caption">${bestD >= 0 ? `<b>${DAYS[bestD]}</b> is your strongest day at <b>${dpct[bestD]}%</b>.` : "Not enough data yet."} ${ALL.filter(d=>dpct[d]!=null).map(d=>`${SHORT[d]} ${dpct[d]}%`).join(" · ")}</p>
+    </div>
+
+    <h2>Tasks <small>last 30 days</small></h2>
+    <div class="card">${taskRows || `<div class="empty">No tasks to show.</div>`}</div>
+
+    ${tracked ? `<h2>Distance &amp; time</h2>
+    <div class="tilegrid">
+      <div class="card stat" style="${gvars(GRAD[2])}"><b>${round1(km30)} km</b><span>last 30 days</span></div>
+      <div class="card stat" style="${gvars(GRAD[3])}"><b>${round1(min30)} min</b><span>last 30 days</span></div>
+      <div class="card stat" style="${gvars(GRAD[1])}"><b>${round1(kmAll)} km</b><span>all time · ${round1(minAll)} min</span></div>
+      <div class="card stat" style="${gvars(GRAD[4])}"><b>${round1(bestKm)} km</b><span>best day</span></div>
+    </div>` : ""}
+
+    ${limits ? `<h2>Daily limits <small>last 30 days</small></h2><div class="card">${limits}</div>` : ""}
+
+    ${hasScreen ? `<h2>Screen time <small>avg hrs / day</small></h2>
+    <div class="card">${screen.filter(x => x.h != null).map(x => `<div class="hbar" style="${gvars(GRAD[6])}"><div class="top"><span>Week of ${fmtShort(x.mon)}</span><span>${Math.floor(x.h)}h ${Math.round((x.h%1)*60)}m</span></div><div class="track"><i style="width:${x.h/maxH*100}%"></i></div></div>`).join("")}</div>` : ""}`;
+}
+
+/* ---------- edit ---------- */
+function itemEditor(it, idx, len){
+  const open = ui.open === it.id;
+  const attrs = `data-id="${it.id}"`;
+  const kind = it.type==="workout" ? "workout · " : it.type==="multi" ? "row of boxes · " : it.type==="limit" ? `limit ${it.max}/day · ` : "";
+  const logs = tracks(it) ? [it.logKm&&"km",it.logTime&&"time"].filter(Boolean).join(" & ")+" · " : "";
+  return `<div class="ed" style="${gvars(GRAD[idx % GRAD.length])}">
+    <div class="edrow">
+      ${ini(it.name)}
+      <button class="edname" data-act="edopen" ${attrs} style="margin-left:10px"><span class="name">${esc(it.name)}</span><span class="tag">${it.tag ? esc(it.tag) + " · " : ""}${kind}${logs}${daysLabel(it.days)} ${open?"▾":"▸"}</span></button>
+      <button class="ib" data-act="move" ${attrs} data-n="-1" ${idx===0?"disabled":""} aria-label="Move up">↑</button>
+      <button class="ib" data-act="move" ${attrs} data-n="1" ${idx===len-1?"disabled":""} aria-label="Move down">↓</button>
+    </div>
+    ${open ? `<div class="edbody">
+      <label class="f">Name<input type="text" data-e="name" ${attrs} value="${esc(it.name)}"></label>
+      <label class="f">Tag<input type="text" data-e="tag" ${attrs} value="${esc(it.tag||"")}" placeholder="e.g. before brushing"></label>
+      <div class="qtags">${QUICK_TAGS.map(t=>`<button class="qt ${it.tag===t?"on":""}" data-act="edtag" ${attrs} data-v="${t}">${t}</button>`).join("")}</div>
+      ${it.type === "multi" ? `<label class="f">Boxes (comma separated)<input type="text" data-e="subs" ${attrs} value="${esc((it.subs||[]).join(", "))}"></label>` : ""}
+      ${it.type === "limit" ? `<label class="f">Max per day<input type="number" inputmode="numeric" min="1" max="30" data-e="max" ${attrs} value="${esc(it.max||1)}"></label>` : ""}
+      ${it.type === "workout" ? `<label class="f">Note (optional)<input type="text" data-e="note" ${attrs} value="${esc(it.note||"")}" placeholder="e.g. whatever pace feels right"></label>
+        <label class="f">Exercises, one per line<textarea data-e="list" ${attrs} rows="${Math.max(3,(it.list||[]).length+1)}" placeholder="Calf raises — x20">${esc((it.list||[]).join("\n"))}</textarea></label>` :
+        it.type === "multi" || it.type === "limit" ? "" : `<label class="f">Ideas list (optional, one per line)<textarea data-e="ideas" ${attrs} rows="3">${esc((it.ideas||[]).join("\n"))}</textarea></label>`}
+      ${!it.type || it.type === "workout" ? `<div class="pills">
+        <button class="pill ${it.logKm?"done":""}" data-act="edlog" data-f="logKm" ${attrs}>${chk}Log distance</button>
+        <button class="pill ${it.logTime?"done":""}" data-act="edlog" data-f="logTime" ${attrs}>${chk}Log time</button></div>` : ""}
+      <div class="dpick">${ALL.map(d=>`<button class="${it.days.includes(d)?"on":""}" data-act="edday" ${attrs} data-d="${d}" aria-label="${DAYS[d]}">${SHORT[d][0]}</button>`).join("")}</div>
+      ${it.type === "workout" && backToBack(it).length ? `<p class="hint" style="color:var(--warn)">Heads up: back to back on ${backToBack(it).join(", ")}.</p>` : ""}
+      <button class="btn danger" data-act="eddel" ${attrs}>Remove “${esc(it.name)}”</button>
+    </div>` : ""}
+  </div>`;
+}
+/* Consecutive days a workout lands on (Sun into Mon counts). Every day is fine on purpose. */
+function backToBack(it){
+  if (it.days.length === 7) return [];
+  return ALL.filter(d => it.days.includes(d) && it.days.includes((d+1)%7)).map(d => `${SHORT[d]} → ${SHORT[(d+1)%7]}`);
+}
+function viewEdit(){
+  const items = S.items.map((it,i)=>itemEditor(it, i, S.items.length)).join("");
+  return hero("Edit", "Your tasks and settings") + `
+    ${items ? `<div class="card lift">${items}</div>` : `<div class="card lift empty">No tasks yet.</div>`}
+    <button class="btn primary addbtn" data-act="addsheet">+ Add task</button>
+
+    <h2>Settings</h2>
+    <div class="card">
+      <div class="setrow"><span>Buzz on tick<small>iOS 18 or newer</small></span>
+        <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.haptics!==false)===v?"on":""}" data-act="haptics" data-v="${v}">${l}</button>`).join("")}</div></div>
+      <div class="setrow"><span>Look</span>
+        <div class="seg">${["auto","light","dark"].map(t=>`<button class="${S.theme===t?"on":""}" data-act="theme" data-t="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join("")}</div></div>
+    </div>
+
+    <h2>Your data</h2>
+    <p class="hint" style="margin:-4px 4px 12px">Everything lives on this phone only. A backup every now and then is a good idea.</p>
+    <button class="btn" data-act="backup">Back up (save a file)</button>
+    <button class="btn" data-act="restore">Restore from a backup</button>
+    <button class="btn danger" data-act="clearweek">Clear this week's ticks</button>
+    <button class="btn danger" data-act="wipe">Start fresh (wipe everything)</button>
+    <p class="quiet">Personal Tracker · v17</p>`;
+}
+
+/* ---------- shared bits for the water effects ---------- */
+const reduceMotion = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+function themeColours(){
+  const cs = getComputedStyle(document.documentElement);
+  return {w1:cs.getPropertyValue("--water1").trim(), w2:cs.getPropertyValue("--water2").trim()};
+}
+/* ---------- the water behind the list ----------
+   The Today screen's background is the tracker: water rises from the bottom of the screen as
+   the day fills up, a sliver at 0% and right to the top at 100%. The surface is a row of
+   springs, so each tick brings a quick shower of rain that patters across it as it rises; it also
+   rolls gently on its own, with bubbles rising through it. Only animates on the Today tab. */
+const Fluid = (() => {
+  const cv = document.createElement("canvas");
+  cv.className = "fluid"; cv.setAttribute("aria-hidden", "true");
+  document.body.prepend(cv);
+  const ctx = cv.getContext("2d"), N = 56;
+  let W = 0, H = 0, dpr = 0, key = null, frac = 0, level = 0, rise = 0, active = false, raf = 0, t = 0, last = 0, col = null;
+  const cols = Array.from({length:N}, () => ({h:0, v:0}));
+  let rain = null, streaks = [], bits = [], bubbles = [];
+  const lerp = (a,b,k) => a + (b-a)*k;
+
+  function resize(){
+    const r = window.devicePixelRatio || 1, w = innerWidth, h = innerHeight;
+    if (w !== W || h !== H || r !== dpr){ W = w; H = h; dpr = r; cv.width = W*r; cv.height = H*r; }
+  }
+  const base = () => H - (0.035 + 0.965*level)*(H + 24);          // a sliver at 0%, over the top at 100%
+  function colH(x){ const i = Math.max(0, Math.min(N-1, x/W*(N-1))), i0 = Math.floor(i), i1 = Math.min(N-1, i0+1), k = i - i0; return cols[i0].h*(1-k) + cols[i1].h*k; }
+  function surfY(x, ph = 0){ return base() + colH(x) + 3.5*Math.sin(x*0.011 + t*0.022 + ph) + 2*Math.sin(x*0.029 - t*0.036 + ph*1.7); }
+  function kick(x, power, spread){
+    const c = Math.round(Math.max(0, Math.min(1, x/W))*(N-1));
+    for (let j = -spread; j <= spread; j++){ const k = cols[c+j]; if (k) k.v += power/(1 + Math.abs(j)*0.8); }
+  }
+  function update(state){
+    col = themeColours(); resize();
+    if (state.key !== key){ key = state.key; frac = level = state.frac; rise = 0; rain = null; streaks = []; bits = []; cols.forEach(c => { c.h = 0; c.v = 0; }); }
+    else {
+      const up = state.frac > frac; frac = state.frac;
+      const x = state.x != null ? state.x : W/2;
+      if (state.event === "finale") shower(180, 1.7, x);
+      else if (state.event === "tick" && up) shower(95, 1, x);
+      else if (state.event === "wobble"){
+        cols.forEach((c, i) => c.v += 2.5*Math.sin(i/4));
+      }
+    }
+    active = true;
+    if (reduceMotion()){ level = frac; rise = 0; draw(); return; }
+    start();
+  }
+  // a shower: builds up, pours, eases off. A new tick mid-shower keeps it pouring.
+  function shower(dur, peak, x){
+    const now = rain ? intensity() : 0;
+    rain = {t0: t - (now > 0 ? dur*0.25*Math.min(1, now) : 0), dur, peak: Math.max(peak, rain ? rain.peak : 0), x};
+  }
+  function intensity(){
+    if (!rain) return 0;
+    const k = (t - rain.t0)/rain.dur;
+    if (k >= 1){ rain = null; return 0; }
+    const ease = u => u*u*(3 - 2*u);
+    return k < 0.25 ? ease(k/0.25) : k < 0.5 ? 1 : 1 - ease((k - 0.5)/0.5);
+  }
+  function start(){ if (!raf){ last = performance.now(); raf = requestAnimationFrame(loop); } }
+  function loop(now){
+    raf = 0;
+    if (!active || document.visibilityState !== "visible") return;
+    const dt = Math.min(3, (now - last)/16.67); last = now; t += dt;
+    for (let step = 0, n = Math.max(1, Math.round(dt)); step < n; step++){
+      rise += (frac - level)*0.0005 - rise*0.045;        // slow, smooth, no overshoot
+      level += rise;
+    }
+    if (Math.abs(frac - level) < 0.0005 && Math.abs(rise) < 0.00005){ level = frac; rise = 0; }
+    // ripples: fixed-size steps so a slow frame can't make the springs blow up
+    for (let step = 0, n = Math.max(1, Math.round(dt)); step < n; step++){
+      for (const c of cols){ c.v += -0.02*c.h - 0.04*c.v; c.h = Math.max(-60, Math.min(60, c.h + c.v)); }
+      const dl = cols.map((c, i) => i > 0 ? 0.12*(c.h - cols[i-1].h) : 0);
+      const dr = cols.map((c, i) => i < N-1 ? 0.12*(c.h - cols[i+1].h) : 0);
+      for (let i = 0; i < N; i++){ if (i > 0) cols[i-1].v += dl[i]; if (i < N-1) cols[i+1].v += dr[i]; }
+    }
+    const rate = intensity()*(rain ? rain.peak : 0)*W/34;
+    for (let n = rate*dt; n > 0; n--){
+      if (n < 1 && Math.random() > n) break;
+      // heavier around where you tapped, but falling across the whole screen
+      const x = rain && Math.random() < 0.35 ? rain.x + (Math.random() - .5)*W*0.5 : Math.random()*(W + 60) - 30;
+      streaks.push({x, y: -20 - Math.random()*60, vx: -1.3, vy: 15 + Math.random()*7, len: 12 + Math.random()*14, a: .35 + Math.random()*.4});
+    }
+    streaks = streaks.filter(r => {
+      r.x += r.vx*dt; r.y += r.vy*dt;
+      const s = surfY(r.x); if (r.y < s) return r.y < H + 20;
+      kick(r.x, 0.8, 1);
+      if (Math.random() < 0.35) bits.push({x:r.x, y:s, vx:(Math.random()-.5)*2.4, vy:-(1 + Math.random()*2.2), r:1 + Math.random()*0.9});
+      return false;
+    });
+    bits = bits.filter(b => { b.vy += 0.35*dt; b.x += b.vx*dt; b.y += b.vy*dt; return !(b.vy > 0 && b.y > surfY(b.x)); });
+    if (Math.random() < (0.25 + Math.min(1, Math.abs(rise)*2500))*dt*Math.max(0.2, level)) bubbles.push({x:Math.random()*W, y:H + 6, r:1.5 + Math.random()*4.5, vy:0.5 + Math.random()*1.1, ph:Math.random()*6});
+    bubbles = bubbles.filter(b => { b.y -= b.vy*dt; return b.y > surfY(b.x) + 4; });
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+  function fill(fn, style){
+    ctx.fillStyle = style; ctx.beginPath(); ctx.moveTo(0, H + 2);
+    for (let x = 0; x <= W + 8; x += 8) ctx.lineTo(x, fn(x));
+    ctx.lineTo(W, H + 2); ctx.closePath(); ctx.fill();
+  }
+  function draw(){
+    if (!col) col = themeColours();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const top = base() - 20;
+    // a second swell just behind the front one
+    fill(x => surfY(x, 2.1) - 7, col.w1 + "40");
+    // the body of water
+    const g = ctx.createLinearGradient(0, Math.max(0, top), 0, H);
+    g.addColorStop(0, col.w1 + "E0"); g.addColorStop(1, col.w2 + "F2");
+    fill(x => surfY(x), g);
+    // soft shafts of light coming down from the surface
+    ctx.save(); ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W + 8; x += 8) ctx.lineTo(x, surfY(x));
+    ctx.lineTo(W, H); ctx.closePath(); ctx.clip();
+    for (let i = 0; i < 5; i++){
+      const x = ((i*0.23 + Math.sin(t*0.004 + i)*0.05) % 1)*W, w = 30 + i*12;
+      const r = ctx.createLinearGradient(0, top, 0, top + H*0.6);
+      r.addColorStop(0, "rgba(255,255,255,.07)"); r.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = r; ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x + w, top); ctx.lineTo(x + w*2.2 - 40, H); ctx.lineTo(x - 30, H); ctx.closePath(); ctx.fill();
+    }
+    ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1.3;
+    for (const b of bubbles){ ctx.beginPath(); ctx.arc(b.x + Math.sin(b.y*0.03 + b.ph)*4, b.y, b.r, 0, Math.PI*2); ctx.stroke(); }
+    ctx.restore();
+    // the surface line
+    ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 2.2; ctx.beginPath();
+    for (let x = 0; x <= W + 8; x += 8){ const y = surfY(x) + 1; x ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+    ctx.stroke();
+    // rain and the little splashes it kicks up
+    ctx.lineCap = "round"; ctx.lineWidth = 1.5;
+    for (const r of streaks){
+      ctx.strokeStyle = `rgba(220,245,255,${r.a})`;
+      ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x - r.vx*r.len/r.vy, r.y - r.len); ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(230,248,255,.85)";
+    for (const b of bits){ ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill(); }
+  }
+  window.addEventListener("resize", () => { if (active){ resize(); draw(); } });
+  document.addEventListener("visibilitychange", () => { if (active && document.visibilityState === "visible" && !reduceMotion()) start(); });
+  return {update};
+})();
+
+/* ---------- render ---------- */
+const TABS = [
+  ["today","Today",'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'],
+  ["week","Week",'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'],
+  ["stats","Stats",'<path d="M4 20V11M10 20V4M16 20v-7M22 20H2"/>'],
+  ["edit","Edit",'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>']
+];
+function render(){
+  const app = document.getElementById("app");
+  const g = GRAD[0];
+  const root = document.documentElement.style;
+  root.setProperty("--g1", g[0]); root.setProperty("--g2", g[1]);
+  app.innerHTML = {today:viewDay, week:viewWeek, stats:viewStats, edit:viewEdit}[ui.tab]();
+  if (ui.slide && !reduceMotion()){
+    app.classList.remove("slide-l", "slide-r"); void app.offsetWidth;
+    app.classList.add(ui.slide < 0 ? "slide-l" : "slide-r");
+  }
+  ui.slide = 0;
+  if (ui.just) splashAt(app.querySelector(".pop .chk, .treat.pop"));
+  const num = app.querySelector(".bpct .num");
+  if (num && num.dataset.from !== num.dataset.to) countUp(num, +num.dataset.from, +num.dataset.to);
+  if (ui.tab !== "today"){ const t = tally(itemsFor(NOW.day), (peek(NOW.week).days || {})[NOW.day]); ui.fluid = {key:`${NOW.week}|${NOW.day}`, frac: t.total ? t.done/t.total : 0}; }
+  Fluid.update({...ui.fluid, event: ui.tab === "today" ? ui.event : null, x:ui.tapX});
+  ui.event = null; ui.just = null;
+  document.getElementById("tabs").innerHTML = TABS.map(([id,label,svg]) =>
+    `<button class="tab ${ui.tab===id?"on":""}" data-act="tab" data-t="${id}"><svg viewBox="0 0 24 24">${svg}</svg><span>${label}</span></button>`).join("");
+}
+function go(tab){ ui.tab = tab; render(); window.scrollTo(0,0); }
+
+/* ---------- feedback ---------- */
+/* A little splash of droplets out of the tick. */
+function splashAt(el){
+  if (!el || reduceMotion()) return;
+  const r = el.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const c = getComputedStyle(el).getPropertyValue("--a1").trim() || "#5ED6F2";
+  for (let i = 0; i < 10; i++){
+    const d = document.createElement("span");
+    d.className = "spark"; d.style.left = cx + "px"; d.style.top = cy + "px"; d.style.background = i % 3 ? c : "#fff";
+    document.body.appendChild(d);
+    const a = i/10*Math.PI*2 + Math.random()*0.5, dist = 24 + Math.random()*24;
+    d.animate([{transform:"translate(-50%,-50%) scale(1)", opacity:1},
+               {transform:`translate(calc(-50% + ${Math.cos(a)*dist}px), calc(-50% + ${Math.sin(a)*dist - 8}px)) scale(.25)`, opacity:0}],
+              {duration:520 + Math.random()*220, easing:"cubic-bezier(.2,.8,.3,1)"}).onfinish = () => d.remove();
+  }
+}
+/* The percentage counts up (or down) to its new value. */
+function countUp(el, from, to){
+  if (reduceMotion()){ el.textContent = to; return; }
+  const t0 = performance.now(), dur = 700;
+  (function step(now){
+    const k = Math.min(1, (now - t0)/dur), e = 1 - Math.pow(1 - k, 3);
+    el.textContent = Math.round(from + (to - from)*e);
+    if (k < 1 && el.isConnected) requestAnimationFrame(step);
+  })(t0);
+}
+let toastT;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 2400);
+}
+function ask(msg, ok){
+  return new Promise(res => {
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true"><p>${esc(msg)}</p>
+      <button class="btn danger" data-r="1">${esc(ok)}</button><button class="btn" data-r="0">Cancel</button></div>`;
+    m.addEventListener("click", e => {
+      const b = e.target.closest("[data-r]");
+      if (b || e.target === m){ m.remove(); res(!!(b && b.dataset.r === "1")); }
+    });
+    document.body.appendChild(m);
+  });
+}
+/* A little buzz on tick. Android has vibrate(); on iPhone (iOS 18+) toggling a hidden
+   switch control gives a system haptic tap. Must run inside the tap itself. */
+function buzz(){
+  if (S.haptics === false) return;
+  try {
+    if (navigator.vibrate){ navigator.vibrate(12); return; }
+    // iPhone (iOS 18 and newer, including iOS 26): web apps can't vibrate directly, but flipping a
+    // native switch control plays the system haptic. Build a hidden one, flip it, remove it.
+    // This has to happen synchronously inside the tap, so call it before anything async.
+    const label = document.createElement("label"), input = document.createElement("input");
+    label.setAttribute("aria-hidden", "true"); label.style.display = "none";
+    input.type = "checkbox"; input.setAttribute("switch", "");
+    label.appendChild(input); document.head.appendChild(label);
+    label.click();
+    label.remove();
+  } catch(e){}
+}
+
+/* Add-a-task sheet. */
+function addSheet(){
+  const st = {name:"", tag:"", days:[...ALL], type:"tick", subs:"", logKm:false, logTime:false, max:"3", list:""};
+  const kinds = [["tick","Tick box"],["multi","Row of boxes"],["workout","Workout"],["limit","Daily limit"]];
+  const m = document.createElement("div");
+  m.className = "modal";
+  const draw = () => {
+    m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Add a task">
+      <h3>Add a task</h3>
+      <div class="formgrid">
+        <label class="f">Task<input id="as-name" type="text" value="${esc(st.name)}" placeholder="e.g. Make bed"></label>
+        <label class="f">Tag (optional)<input id="as-tag" type="text" value="${esc(st.tag)}" placeholder="e.g. before brushing"></label>
+        <div class="qtags">${QUICK_TAGS.map(t=>`<button class="qt ${st.tag===t?"on":""}" data-s="qtag" data-v="${t}">${t}</button>`).join("")}</div>
+        <div><span class="f">Kind</span><div class="kinds">${kinds.map(([k,l])=>`<button class="${st.type===k?"on":""}" data-s="type" data-v="${k}">${l}</button>`).join("")}</div></div>
+        ${st.type === "multi" ? `<label class="f">Boxes (comma separated)<input id="as-subs" type="text" value="${esc(st.subs)}" placeholder="e.g. Breakfast, Lunch, Dinner"></label>` : ""}
+        ${st.type === "workout" ? `<label class="f">Exercises (optional, one per line)<textarea id="as-list" rows="4" placeholder="Push-ups — x10&#10;Plank — 30 sec">${esc(st.list)}</textarea></label>` : ""}
+        ${st.type === "limit" ? `<label class="f">Max per day<input id="as-max" type="number" inputmode="numeric" min="1" max="30" value="${esc(st.max)}"></label>
+          <p class="hint">You'll get a row of boxes to tap each time, and a heads up when you hit the limit.</p>` : ""}
+        ${st.type === "tick" || st.type === "workout" ? `<div class="pills">
+          <button class="pill ${st.logKm?"done":""}" data-s="log" data-v="logKm">${chk}Log distance</button>
+          <button class="pill ${st.logTime?"done":""}" data-s="log" data-v="logTime">${chk}Log time</button></div>` : ""}
+        <div><span class="f">Days</span><div class="dpick" style="margin-top:6px">${ALL.map(d=>`<button class="${st.days.includes(d)?"on":""}" data-s="day" data-v="${d}" aria-label="${DAYS[d]}">${SHORT[d][0]}</button>`).join("")}</div></div>
+      </div>
+      <button class="btn primary" data-s="save">Add</button>
+      <button class="btn" data-s="cancel">Cancel</button>
+    </div>`;
+  };
+  m.addEventListener("input", e => {
+    const id = e.target.id;
+    if (id === "as-name") st.name = e.target.value;
+    else if (id === "as-tag") st.tag = e.target.value;
+    else if (id === "as-subs") st.subs = e.target.value;
+    else if (id === "as-max") st.max = e.target.value;
+    else if (id === "as-list") st.list = e.target.value;
+  });
+  m.addEventListener("click", e => {
+    if (e.target === m){ m.remove(); return; }
+    const b = e.target.closest("[data-s]");
+    if (!b) return;
+    const s = b.dataset.s;
+    if (s === "cancel"){ m.remove(); return; }
+    if (s === "type"){ st.type = b.dataset.v; draw(); return; }
+    if (s === "log"){ st[b.dataset.v] = !st[b.dataset.v]; draw(); return; }
+    if (s === "qtag"){ st.tag = st.tag === b.dataset.v ? "" : b.dataset.v; draw(); return; }
+    if (s === "day"){ const d = Number(b.dataset.v); st.days = st.days.includes(d) ? st.days.filter(x=>x!==d) : [...st.days, d].sort(); draw(); return; }
+    if (s === "save"){
+      const name = st.name.trim();
+      if (!name){ toast("Give it a name first"); document.getElementById("as-name").focus(); return; }
+      if (!st.days.length){ toast("Pick at least one day"); return; }
+      buzz();
+      const it = {id:uid(), name, tag:st.tag.trim(), days:st.days};
+      if (st.type !== "tick") it.type = st.type;
+      if (st.type === "tick" || st.type === "workout"){ if (st.logKm) it.logKm = true; if (st.logTime) it.logTime = true; }
+      if (st.type === "limit"){
+        it.max = parseInt(st.max, 10);
+        if (!(it.max >= 1 && it.max <= 30)){ toast("Set a max between 1 and 30"); return; }
+      }
+      if (st.type === "workout"){ it.note = ""; it.list = lines(st.list); }
+      if (st.type === "multi"){
+        it.subs = st.subs.split(",").map(x=>x.trim()).filter(Boolean);
+        if (!it.subs.length){ toast("Add at least one box name"); return; }
+      }
+      S.items.push(it);
+      save(); m.remove(); render();
+      if (!st.days.includes(ui.day)) toast(`Added — it'll show on ${st.days.map(d=>SHORT[d]).join(", ")}`);
+      else toast("Added");
+    }
+  });
+  draw();
+  document.body.appendChild(m);
+  setTimeout(()=>{ const i = document.getElementById("as-name"); if (i) i.focus(); }, 50);
+}
+
+function applyTheme(){
+  const r = document.documentElement;
+  if (S.theme === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", S.theme);
+}
+
+/* ---------- actions ---------- */
+const findItem = id => S.items.find(i => i.id === id);
+const today = () => { NOW = nowInfo(); ui.week = NOW.week; ui.day = NOW.day; };
+
+document.addEventListener("click", async e => {
+  if (e.isTrusted) ui.tapX = e.clientX;
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  switch (el.dataset.act){
+    case "tab": if (el.dataset.t === "today") today(); go(el.dataset.t); break;
+    case "today": today(); render(); break;
+    case "wk": ui.week = keyOf(addDays(fromKey(ui.week), 7*Number(el.dataset.n))); render(); break;
+    case "wknow": today(); render(); break;
+    case "openday":
+      ui.day = Number(el.dataset.d); go("today");
+      if (el.dataset.check) document.getElementById("weeklycheck").scrollIntoView({block:"start"});
+      break;
+    case "day": {
+      buzz();
+      const date = addDays(fromKey(ui.week), ui.day + Number(el.dataset.n));
+      ui.week = keyOf(mondayOf(date)); ui.day = dow(date); ui.slide = Number(el.dataset.n);
+      render(); break;
+    }
+    case "appadd": {
+      const ch = wk(ui.week).check; ch.apps = ch.apps || []; ch.apps.push({name:"", h:""});
+      save(); render();
+      const ins = document.querySelectorAll('[data-app$="|name"]'); if (ins.length) ins[ins.length - 1].focus();
+      break;
+    }
+    case "appdel": { const ch = wk(ui.week).check; (ch.apps || []).splice(Number(el.dataset.i), 1); save(); render(); break; }
+    case "tick": {
+      buzz();
+      const before = isFull(ui.week, ui.day);
+      const c = dayRec(ui.week, ui.day).c, k = el.dataset.k;
+      if (c[k]){ delete c[k]; ui.event = "wobble"; } else { c[k] = true; ui.just = k; ui.event = "tick"; }
+      const finished = !before && isFull(ui.week, ui.day);
+      if (finished) ui.event = "finale";
+      save(); render();
+      if (finished) setTimeout(() => toast("Full day — filled to the top 💧"), 500);
+      break;
+    }
+    case "limit": {
+      buzz();
+      const rec = dayRec(ui.week, ui.day), k = el.dataset.k, i = Number(el.dataset.i), it = findItem(k);
+      rec.n = rec.n || {};
+      rec.n[k] = (rec.n[k] === i+1) ? i : i+1;
+      if (rec.n[k] === i+1) ui.just = k + "#" + i;
+      save(); render();
+      if (it && rec.n[k] >= it.max) toast(`That's your ${it.max} for today.`);
+      break;
+    }
+    case "statwk": ui.statWeek = Number(el.dataset.i); render(); break;
+    case "edlog": { const it = findItem(el.dataset.id), f = el.dataset.f; it[f] = !it[f]; save(); render(); break; }
+    case "edtag": { const it = findItem(el.dataset.id); it.tag = it.tag === el.dataset.v ? "" : el.dataset.v; save(); render(); break; }
+    case "addsheet": addSheet(); break;
+    case "edopen": ui.open = ui.open === el.dataset.id ? null : el.dataset.id; render(); break;
+    case "move": {
+      const list = S.items, i = list.findIndex(x => x.id === el.dataset.id), j = i + Number(el.dataset.n);
+      if (j < 0 || j >= list.length) break;
+      [list[i], list[j]] = [list[j], list[i]]; save(); render(); break;
+    }
+    case "edday": {
+      const it = findItem(el.dataset.id), d = Number(el.dataset.d);
+      it.days = it.days.includes(d) ? it.days.filter(x => x !== d) : [...it.days, d].sort();
+      save(); render(); break;
+    }
+    case "eddel": {
+      const it = findItem(el.dataset.id);
+      if (await ask(`Remove “${it.name}” from the list? Past ticks for it won't count any more.`, "Remove")){
+        S.items.splice(S.items.indexOf(it), 1);
+        ui.open = null; save(); render(); toast("Removed");
+      }
+      break;
+    }
+    case "haptics": S.haptics = el.dataset.v === "true"; save(); render(); if (S.haptics) buzz(); break;
+    case "theme": S.theme = el.dataset.t; save(); applyTheme(); render(); break;
+    case "backup": backup(); break;
+    case "restore": document.getElementById("restoreFile").click(); break;
+    case "clearweek":
+      if (await ask(`Clear all ticks and notes for the week of ${fmt(fromKey(ui.week))}?`, "Clear this week")){
+        delete S.weeks[ui.week]; save(); render(); toast("Week cleared");
+      }
+      break;
+    case "wipe":
+      if (await ask("Start fresh? This wipes all your tasks and history. Can't be undone (unless you've got a backup).", "Wipe everything")){
+        S = defaults(); save(); applyTheme(); ui.open = null; today(); go("today"); toast("Fresh start");
+      }
+      break;
+  }
+});
+
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.closest(".modal")) return;
+  if (el.dataset.f){
+    const k = el.dataset.f.split(".")[1];
+    wk(ui.week).check[k] = el.value;
+    save(); return;
+  }
+  if (el.dataset.app){
+    const [i, f] = el.dataset.app.split("|"), ch = wk(ui.week).check;
+    ch.apps = ch.apps || []; ch.apps[i] = ch.apps[i] || {}; ch.apps[i][f] = el.value;
+    const tot = document.getElementById("appTotal"); if (tot) tot.textContent = appTotal(ch.apps);
+    save(); return;
+  }
+  if (el.dataset.why){
+    const ch = wk(ui.week).check; ch.why = ch.why || {}; ch.why[el.dataset.why] = el.value;
+    save(); return;
+  }
+  if (el.dataset.m){
+    const [id,f] = el.dataset.m.split("|"), rec = dayRec(ui.week, ui.day);
+    rec.m = rec.m || {}; rec.m[id] = rec.m[id] || {}; rec.m[id][f] = el.value;
+    save(); return;
+  }
+  const ed = el.dataset.e;
+  if (!ed) return;
+  const it = findItem(el.dataset.id);
+  if (!it) return;
+  if (ed === "subs") it.subs = el.value.split(",").map(s=>s.trim()).filter(Boolean);
+  else if (ed === "ideas") it.ideas = lines(el.value);
+  else if (ed === "list") it.list = lines(el.value);
+  else if (ed === "max"){ const n = parseInt(el.value,10); if (n >= 1 && n <= 30) it.max = n; }
+  else it[ed] = ed === "name" ? (el.value.trim() || "Untitled") : el.value;
+  save();
+});
+
+async function backup(){
+  const json = JSON.stringify(S);
+  const name = `the-standard-backup-${NOW.date}.json`;
+  const blob = new Blob([json], {type:"application/json"});
+  try {
+    const file = new File([blob], name, {type:"application/json"});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:"The Standard backup"});
+      return;
+    }
+  } catch(err){ if (err && err.name === "AbortError") return; }
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+}
+document.getElementById("restoreFile").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!data || !Array.isArray(data.items) || typeof data.weeks !== "object") throw new Error("bad");
+    if (await ask("Replace what's on this phone with that backup?", "Restore")){
+      localStorage.setItem(KEY, JSON.stringify(data)); S = load(); save(); applyTheme(); render(); toast("Restored");
+    }
+  } catch(err){ toast("That file doesn't look like a backup"); }
+});
+
+/* new day / new week while the app sat open in the background */
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  const n = nowInfo();
+  if (n.date !== NOW.date){
+    const wasCurrent = ui.week === NOW.week && ui.day === NOW.day;
+    NOW = n;
+    if (wasCurrent){ ui.week = n.week; ui.day = n.day; }
+    render();
+  }
+});
+
+save();
+applyTheme();
+render();
+
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+})();
+</script>
+</body>
+</html>
