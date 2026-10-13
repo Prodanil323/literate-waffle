@@ -121,7 +121,7 @@ button.trow:active,button.tile:active{transform:scale(.985)}
 .done .chk::after{content:"";position:absolute;left:11px;top:6px;width:8px;height:15px;border:solid #fff;border-width:0 3.5px 3.5px 0;transform:rotate(45deg)}
 .pop .chk{animation:tickpop .45s cubic-bezier(.3,1.8,.5,1)}
 .pop .chk::after{animation:tickdraw .3s ease-out}
-.pop .chk::before{content:"";position:absolute;inset:-3px;border-radius:50%;border:2.5px solid var(--a1);animation:ring .65s ease-out forwards;pointer-events:none}
+.pop .chk::before{content:"";position:absolute;inset:-3px;border-radius:50%;border:2.5px solid var(--a1);animation:ring .65s ease-out forwards}
 @keyframes ring{from{transform:scale(.7);opacity:1}to{transform:scale(2.4);opacity:0}}
 .tile.pulse{animation:pulse .5s cubic-bezier(.3,1.6,.5,1), glow .8s ease-out}
 @keyframes pulse{0%{transform:scale(.97)}45%{transform:scale(1.025)}100%{transform:scale(1)}}
@@ -129,10 +129,16 @@ button.trow:active,button.tile:active{transform:scale(.985)}
 .tiles.cheer .tile{animation:cheer .7s cubic-bezier(.3,1.6,.5,1) both;animation-delay:calc(var(--i)*70ms)}
 @keyframes cheer{0%{transform:none}40%{transform:translateY(-12px) scale(1.02)}100%{transform:none}}
 .spark{position:fixed;width:7px;height:7px;border-radius:50%;z-index:30;pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,.6)}
-#app.slide-l{animation:slideL .38s cubic-bezier(.2,.8,.2,1)}
-#app.slide-r{animation:slideR .38s cubic-bezier(.2,.8,.2,1)}
-@keyframes slideL{from{transform:translateX(-30px);opacity:.15}}
-@keyframes slideR{from{transform:translateX(30px);opacity:.15}}
+/* page changes: the old page drifts out softly, the new one glides in a piece at a time */
+#app{--dx:0px;--dy:10px;--ox:0px;--oy:-6px}
+#app[data-in="l"]{--dx:-26px;--dy:0px}
+#app[data-in="r"]{--dx:26px;--dy:0px}
+#app[data-out="l"]{--ox:-18px;--oy:0px}
+#app[data-out="r"]{--ox:18px;--oy:0px}
+#app[data-out]>*{animation:pgOut .16s cubic-bezier(.4,0,1,1) forwards}
+#app[data-in]>*{animation:pgIn .5s cubic-bezier(.22,1,.36,1) both;animation-delay:calc(var(--n,0)*38ms)}
+@keyframes pgOut{to{opacity:0;transform:translate(var(--ox),var(--oy))}}
+@keyframes pgIn{from{opacity:0;transform:translate(var(--dx),var(--dy))}}
 .dayswitch{display:flex;align-items:center;gap:8px}
 .dayswitch .arrow{width:34px;height:34px;font-size:20px}
 .approw{display:grid;grid-template-columns:1fr 86px 42px;gap:8px;align-items:center}
@@ -237,7 +243,12 @@ details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
 .tabs .in{display:flex;width:100%;max-width:520px;background:var(--bg2);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);border-radius:24px;box-shadow:0 14px 34px rgba(0,0,0,.35),var(--hi);padding:6px}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border-radius:18px;font-size:12px;font-weight:800;color:var(--muted);text-align:center}
 .tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.tab.on{color:#fff;background:linear-gradient(140deg,var(--g1),var(--g2));box-shadow:0 6px 14px color-mix(in srgb,var(--g1) 40%,transparent)}
+.tabs .in{position:relative}
+.tab{position:relative;z-index:1;transition:color .35s ease}
+.tab svg{transition:transform .45s cubic-bezier(.22,1,.36,1)}
+.tab.on{color:#fff}
+.tab.on svg{transform:translateY(-1px) scale(1.06)}
+.tabs .pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:18px;background:linear-gradient(140deg,var(--g1),var(--g2));box-shadow:0 6px 14px color-mix(in srgb,var(--g1) 40%,transparent);transform:translateX(calc(var(--t,0)*100%));transition:transform .5s cubic-bezier(.22,1,.36,1)}
 
 /* overlays */
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translate(-50%,20px);opacity:0;
@@ -249,7 +260,7 @@ details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
 .sheet p{margin:0 0 16px;font-weight:700}
 .sheet p.hint{font-size:14px;margin:0}
 .formgrid{display:grid;gap:14px;margin-bottom:18px}
-@media (prefers-reduced-motion: reduce){.count.bump,.pop .chk,.pop .chk::after,.pop .chk::before,.pop .name,.tile.pulse,.tiles.cheer .tile,#app.slide-l,#app.slide-r,.treat.pop,</style>
+@media (prefers-reduced-motion: reduce){.count.bump,.pop .chk,.pop .chk::after,.pop .chk::before,.pop .name,.tile.pulse,.tiles.cheer .tile,#app[data-in]>*,#app[data-out]>*,.treat.pop,</style>
 </head>
 <body>
 <div class="page" id="page"><div id="app"></div></div>
@@ -360,7 +371,7 @@ function nowInfo(){ const t = new Date(); return {week:keyOf(mondayOf(t)), day:d
 let NOW = nowInfo();
 
 /* ---------- ui state ---------- */
-const ui = {tab:"today", week:NOW.week, day:NOW.day, open:null, counts:{}, pcts:{}, just:null, event:null, statWeek:null, slide:0};
+const ui = {tab:"today", week:NOW.week, day:NOW.day, open:null, counts:{}, pcts:{}, just:null, event:null, statWeek:null, enter:null, navT:null, navDir:0};
 function countHtml(bk, p){
   const bump = ui.counts[bk] != null && ui.counts[bk] !== p.done;
   ui.counts[bk] = p.done;
@@ -926,21 +937,49 @@ function render(){
   const root = document.documentElement.style;
   root.setProperty("--g1", g[0]); root.setProperty("--g2", g[1]);
   app.innerHTML = {today:viewDay, week:viewWeek, stats:viewStats, edit:viewEdit}[ui.tab]();
-  if (ui.slide && !reduceMotion()){
-    app.classList.remove("slide-l", "slide-r"); void app.offsetWidth;
-    app.classList.add(ui.slide < 0 ? "slide-l" : "slide-r");
-  }
-  ui.slide = 0;
+  if (ui.enter != null){
+    [...app.children].forEach((c, i) => c.style.setProperty("--n", Math.min(i, 6)));
+    app.dataset.in = ui.enter < 0 ? "l" : ui.enter > 0 ? "r" : "d";
+    clearTimeout(ui.enterT); ui.enterT = setTimeout(() => delete app.dataset.in, 800);
+  } else delete app.dataset.in;
+  ui.enter = null;
   if (ui.just) splashAt(app.querySelector(".pop .chk, .treat.pop"));
   const num = app.querySelector(".bpct .num");
   if (num && num.dataset.from !== num.dataset.to) countUp(num, +num.dataset.from, +num.dataset.to);
   if (ui.tab !== "today"){ const t = tally(itemsFor(NOW.day), (peek(NOW.week).days || {})[NOW.day]); ui.fluid = {key:`${NOW.week}|${NOW.day}`, frac: t.total ? t.done/t.total : 0}; }
   Fluid.update({...ui.fluid, event: ui.tab === "today" ? ui.event : null, x:ui.tapX});
   ui.event = null; ui.just = null;
-  document.getElementById("tabs").innerHTML = TABS.map(([id,label,svg]) =>
-    `<button class="tab ${ui.tab===id?"on":""}" data-act="tab" data-t="${id}"><svg viewBox="0 0 24 24">${svg}</svg><span>${label}</span></button>`).join("");
+  renderTabs();
 }
-function go(tab){ ui.tab = tab; render(); window.scrollTo(0,0); }
+/* the tab bar is built once so the highlight can glide between tabs */
+function renderTabs(){
+  const bar = document.getElementById("tabs");
+  if (!bar.firstChild) bar.innerHTML = `<i class="pill"></i>` + TABS.map(([id,label,svg]) =>
+    `<button class="tab" data-act="tab" data-t="${id}"><svg viewBox="0 0 24 24">${svg}</svg><span>${label}</span></button>`).join("");
+  bar.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.t === ui.tab));
+  bar.style.setProperty("--t", TABS.findIndex(t => t[0] === ui.tab));
+}
+/* change page smoothly: state updates now, the old page fades out, then the new one glides in.
+   dir: -1 / 1 slides sideways (days, weeks), 0 rises gently (tabs). Quick repeat taps just
+   land on the latest page. */
+function nav(dir){
+  const app = document.getElementById("app");
+  renderTabs();
+  if (reduceMotion() || !app.firstChild){ render(); landScroll(); return; }
+  ui.navDir = dir;
+  if (ui.navT) return;
+  delete app.dataset.in;
+  app.dataset.out = dir < 0 ? "r" : dir > 0 ? "l" : "d";
+  ui.navT = setTimeout(() => {
+    ui.navT = null; delete app.dataset.out;
+    ui.enter = ui.navDir; render(); landScroll();
+  }, 160);
+}
+function landScroll(){
+  const t = ui.scrollId && document.getElementById(ui.scrollId); ui.scrollId = null;
+  if (t) t.scrollIntoView({block:"start"}); else window.scrollTo(0,0);
+}
+function go(tab){ if (tab === ui.tab && !ui.navT) { render(); window.scrollTo({top:0, behavior:"smooth"}); return; } ui.tab = tab; nav(0); }
 
 /* ---------- feedback ---------- */
 /* A little splash of droplets out of the tick. */
@@ -1092,19 +1131,24 @@ document.addEventListener("click", async e => {
   const el = e.target.closest("[data-act]");
   if (!el) return;
   switch (el.dataset.act){
-    case "tab": if (el.dataset.t === "today") today(); go(el.dataset.t); break;
-    case "today": today(); render(); break;
-    case "wk": ui.week = keyOf(addDays(fromKey(ui.week), 7*Number(el.dataset.n))); render(); break;
-    case "wknow": today(); render(); break;
+    case "tab": {
+      const was = ui.week + ui.day;
+      if (el.dataset.t === "today") today();
+      const now = ui.week + ui.day;
+      if (ui.tab === "today" && el.dataset.t === "today" && now !== was){ nav(now > was ? 1 : -1); break; }
+      go(el.dataset.t); break;
+    }
+    case "today": { const was = ui.week + ui.day; today(); const now = ui.week + ui.day; if (now !== was) nav(now > was ? 1 : -1); else render(); break; }
+    case "wk": ui.week = keyOf(addDays(fromKey(ui.week), 7*Number(el.dataset.n))); nav(Number(el.dataset.n)); break;
+    case "wknow": { const was = ui.week; today(); if (ui.week !== was) nav(ui.week > was ? 1 : -1); else render(); break; }
     case "openday":
-      ui.day = Number(el.dataset.d); go("today");
-      if (el.dataset.check) document.getElementById("weeklycheck").scrollIntoView({block:"start"});
+      ui.day = Number(el.dataset.d); ui.scrollId = el.dataset.check ? "weeklycheck" : null; go("today");
       break;
     case "day": {
       buzz();
       const date = addDays(fromKey(ui.week), ui.day + Number(el.dataset.n));
-      ui.week = keyOf(mondayOf(date)); ui.day = dow(date); ui.slide = Number(el.dataset.n);
-      render(); break;
+      ui.week = keyOf(mondayOf(date)); ui.day = dow(date);
+      nav(Number(el.dataset.n)); break;
     }
     case "appadd": {
       const ch = wk(ui.week).check; ch.apps = ch.apps || []; ch.apps.push({name:"", h:""});
