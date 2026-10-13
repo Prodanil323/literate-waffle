@@ -800,8 +800,8 @@ function viewEdit(){
     </div>
 
     <h2>Your data</h2>
-    <p class="hint" style="margin:-4px 4px 12px">Everything lives on this phone only. A backup every now and then is a good idea.</p>
-    <button class="btn" data-act="backup">Back up (save a file)</button>
+    <p class="hint" style="margin:-4px 4px 12px">Everything lives on this phone only. A backup saves all of it in one file: your tasks, every day you've ticked, lazy days, logged distances and times, weekly checks and settings.</p>
+    <button class="btn" data-act="backup">Back up everything (save a file)</button>
     <button class="btn" data-act="restore">Restore from a backup</button>
     <button class="btn danger" data-act="clearweek">Clear this week's ticks</button>
     <button class="btn danger" data-act="wipe">Start fresh (wipe everything)</button>
@@ -1363,12 +1363,13 @@ document.addEventListener("input", e => {
 
 async function backup(){
   const json = JSON.stringify(S);
-  const name = `the-standard-backup-${NOW.date}.json`;
+  const name = `personal-tracker-backup-${NOW.date}.json`;
   const blob = new Blob([json], {type:"application/json"});
   try {
     const file = new File([blob], name, {type:"application/json"});
     if (navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file], title:"The Standard backup"});
+      await navigator.share({files:[file], title:"Personal Tracker backup"});
+      toast(backupSummary(S));
       return;
     }
   } catch(err){ if (err && err.name === "AbortError") return; }
@@ -1376,6 +1377,17 @@ async function backup(){
   a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+  toast(backupSummary(S));
+}
+/* e.g. "Backed up 6 tasks and 41 days" */
+function backupSummary(data, verb = "Backed up"){
+  let days = 0;
+  for (const k in (data.weeks || {})) for (const d in (data.weeks[k].days || {})){
+    const r = data.weeks[k].days[d] || {};
+    if (Object.keys(r.c || {}).length || r.lazy || Object.keys(r.n || {}).length || Object.keys(r.m || {}).length) days++;
+  }
+  const n = (data.items || []).length;
+  return `${verb} ${n} task${n === 1 ? "" : "s"} and ${days} day${days === 1 ? "" : "s"}`;
 }
 document.getElementById("restoreFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = "";
@@ -1383,8 +1395,8 @@ document.getElementById("restoreFile").addEventListener("change", async e => {
   try {
     const data = JSON.parse(await f.text());
     if (!data || !Array.isArray(data.items) || typeof data.weeks !== "object") throw new Error("bad");
-    if (await ask("Replace what's on this phone with that backup?", "Restore")){
-      localStorage.setItem(KEY, JSON.stringify(data)); S = load(); save(); applyTheme(); render(); toast("Restored");
+    if (await ask(`Replace what's on this phone with that backup? It has ${backupSummary(data, "").trim()}.`, "Restore")){
+      localStorage.setItem(KEY, JSON.stringify(data)); S = load(); save(); applyTheme(); render(); toast(backupSummary(S, "Restored"));
     }
   } catch(err){ toast("That file doesn't look like a backup"); }
 });
