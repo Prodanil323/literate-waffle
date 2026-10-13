@@ -236,6 +236,9 @@ details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
 .setrow small{display:block;font-size:12px;font-weight:700;color:var(--soft)}
 .seg{display:flex;flex:none;border-radius:14px;background:var(--raise);box-shadow:var(--well);padding:3px}
 .seg button{min-height:38px;padding:0 13px;font-size:14px;font-weight:800;border-radius:11px;color:var(--soft)}
+.setrow.stack{flex-direction:column;align-items:stretch;gap:10px}
+.setrow.stack .seg{width:100%}
+.setrow.stack .seg button{flex:1;padding:0 4px;font-size:13.5px;text-align:center}
 .seg button.on{background:linear-gradient(140deg,var(--g1),var(--g2));color:#fff}
 
 /* tab bar */
@@ -796,8 +799,8 @@ function viewEdit(){
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.haptics!==false)===v?"on":""}" data-act="haptics" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Badge on app icon<small>${"setAppBadge" in navigator ? "Shows what's left to tick today" : "Works once added to your Home Screen"}</small></span>
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.badge===true)===v?"on":""}" data-act="badge" data-v="${v}">${l}</button>`).join("")}</div></div>
-      <div class="setrow"><span>Sky<small>Sunrise, noon, sunset and night colours</small></span>
-        <div class="seg">${[[true,"Time of day"],[false,"Fixed"]].map(([v,l])=>`<button class="${(S.sky!==false)===v?"on":""}" data-act="sky" data-v="${v}">${l}</button>`).join("")}</div></div>
+      <div class="setrow stack"><span>Sky<small>Auto follows the time of day, or keep one all the time</small></span>
+        <div class="seg">${[["auto","Auto"],["rise","Sunrise"],["noon","Noon"],["set","Sunset"],["night","Night"]].map(([v,l])=>`<button class="${SKY.mode()===v?"on":""}" data-act="sky" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Look</span>
         <div class="seg">${["auto","light","dark"].map(t=>`<button class="${S.theme===t?"on":""}" data-act="theme" data-t="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join("")}</div></div>
     </div>
@@ -1032,12 +1035,17 @@ const SKY = (() => {
   const rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
   const mix = (a, b, k) => "#" + rgb(a).map((v, i) => Math.round(v + (rgb(b)[i] - v)*k).toString(16).padStart(2, "0")).join("");
   const isDark = () => { const t = document.documentElement.getAttribute("data-theme"); return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+  // "auto" follows the clock; or keep one all day. (Older saves used true / false.)
+  const mode = () => S.sky === false ? "noon" : PAL.dark[S.sky] ? S.sky : "auto";
   function apply(){
     const r = document.documentElement.style;
-    if (S.sky === false){ PROPS.forEach(p => r.removeProperty(p)); GRAD = GRAD_BASE; Fluid.recolour(0); return; }
-    const d = new Date(), h = d.getHours() + d.getMinutes()/60;
-    let i = 0; while (STOPS[i+1][0] <= h) i++;
-    const [h0, a] = STOPS[i], [h1, b] = STOPS[i+1], k = (h - h0)/(h1 - h0), pal = PAL[isDark() ? "dark" : "light"];
+    const pal = PAL[isDark() ? "dark" : "light"], pick = mode();
+    let a = pick, b = pick, k = 0;
+    if (pick === "auto"){
+      const d = new Date(), h = d.getHours() + d.getMinutes()/60;
+      let i = 0; while (STOPS[i+1][0] <= h) i++;
+      a = STOPS[i][1]; b = STOPS[i+1][1]; k = (h - STOPS[i][0])/(STOPS[i+1][0] - STOPS[i][0]);
+    }
     PROPS.forEach((p, j) => r.setProperty(p, mix(pal[a][j], pal[b][j], k)));
     GRAD = TASKS[a].map((g, n) => [mix(g[0], TASKS[b][n][0], k), mix(g[1], TASKS[b][n][1], k)]);
     GRAD[0] = [mix(pal[a][4], pal[b][4], k), mix(pal[a][5], pal[b][5], k)];   // the main accent: buttons, tab, ticks
@@ -1046,7 +1054,7 @@ const SKY = (() => {
   setInterval(apply, 60000);
   document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ apply(); render(); } });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { apply(); render(); });
-  return {apply};
+  return {apply, mode};
 })();
 
 /* ---------- render ---------- */
@@ -1386,7 +1394,7 @@ document.addEventListener("click", async e => {
       S.badge = on; save(); render(); break;
     }
     case "theme": S.theme = el.dataset.t; save(); applyTheme(); render(); break;
-    case "sky": S.sky = el.dataset.v === "true"; save(); SKY.apply(); render(); break;
+    case "sky": S.sky = el.dataset.v; save(); SKY.apply(); render(); break;
     case "backup": backup(); break;
     case "restore": document.getElementById("restoreFile").click(); break;
     case "clearweek":
