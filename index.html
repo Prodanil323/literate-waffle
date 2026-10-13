@@ -109,6 +109,15 @@ h2,h1,.herosub{text-shadow:0 1px 8px rgba(0,0,0,.22)}
 button.trow:active,button.tile:active{transform:scale(.985)}
 .ini{flex:none;width:30px;font:900 30px/1 var(--font);text-align:center;
   background:linear-gradient(160deg,var(--a1),var(--a2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.ini.ic{display:inline-block;height:30px;background:linear-gradient(160deg,var(--a1),var(--a2));-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.icongrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(46px,1fr));gap:6px;margin-top:8px}
+.icongrid button{height:46px;border-radius:12px;background:var(--raise);display:flex;align-items:center;justify-content:center;gap:4px}
+.icongrid button.on{box-shadow:inset 0 0 0 2px var(--a1)}
+.icongrid .ini{width:24px;font-size:22px}.icongrid .ini.ic{height:24px}
+.icongrid .auto{font-size:11px;font-weight:900;color:var(--soft)}
+.icongrid button:first-child .ini.ic{width:16px;height:16px}
+.iconbtn{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 14px;border-radius:14px;background:var(--raise);font-weight:800}
+.iconbtn .tag{margin:0 0 0 auto}
 .lbl{flex:1;min-width:0}
 .name{display:block;font-weight:800;font-size:17px}
 .tag{display:block;font-size:13px;font-weight:700;color:var(--soft);margin-top:1px}
@@ -291,6 +300,86 @@ const GRAD_BASE = [["#5ED6F2","#0E7FC0"],["#2DD4BF","#0E9FB8"],["#38BDF8","#1D6F
 let GRAD = GRAD_BASE;   // tinted to match the time of day by SKY
 const gvars = g => `--a1:${g[0]};--a2:${g[1]}`;
 const QUICK_TAGS = ["morning","midday","arvo","evening","night"];
+/* Task icons: [key, label, line drawing on a 24px grid]. Drawn as masks so they take each task's colours. */
+const ICONS = [
+ ["bed","Bed",'<path d="M3 19V6M3 14h18v5M21 14a3 3 0 0 0-3-3h-7v3"/><circle cx="7" cy="11.5" r="1.8"/>'],
+ ["alarm","Alarm",'<circle cx="12" cy="13" r="7"/><path d="M12 10v3l2 2M5 4 2.5 6.5M19 4l2.5 2.5"/>'],
+ ["tooth","Teeth",'<path d="M7.5 3C5 3 3.5 5 3.5 8c0 3 1.5 4 2 7 .4 2.5 1 6 2.5 6s1.8-4.5 2.6-6.5h2.8c.8 2 1.1 6.5 2.6 6.5s2.1-3.5 2.5-6c.5-3 2-4 2-7 0-3-1.5-5-4-5-2 0-2.8 1-4.5 1S9.5 3 7.5 3z"/>'],
+ ["shower","Shower",'<path d="M4 21V6a2 2 0 0 1 2-2h5a2 2 0 0 1 2 2v1"/><path d="M9 7.5h8"/><path d="M10 11v1M13 11v1M16 11v1M11.5 14.5v1M14.5 14.5v1M13 18v1"/>'],
+ ["coffee","Coffee",'<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M8 3v3M12 3v3"/>'],
+ ["broom","Clean",'<path d="M15 3l-3.5 8.5"/><path d="M7 11.5h8.5l2 9.5H5z"/><path d="M8.5 15.5 8 21M12 15.5V21M15.5 15.5l.5 5.5"/>'],
+ ["laundry","Laundry",'<path d="M3 8h18"/><path d="M4 8l1.5 12h13L20 8"/><path d="M8.5 12v4.5M12 12v4.5M15.5 12v4.5"/><path d="M7 8c0-2.2 2.2-4 5-4s5 1.8 5 4"/>'],
+ ["plant","Plant",'<path d="M7 14h10l-1.5 7h-7z"/><path d="M12 14V8"/><path d="M12 9c0-3-2-5-5-5 0 3 2 5 5 5zM12 11c0-3 2-5 5-5 0 3-2 5-5 5z"/>'],
+ ["water","Water",'<path d="M6 3h12l-1.5 17a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1z"/><path d="M6.6 10h10.8"/>'],
+ ["pill","Pill",'<rect x="2.5" y="8.5" width="19" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="m9.5 9.5 5 5"/>'],
+ ["apple","Eat well",'<path d="M12 7.5c-2-1.5-7.5-1-7.5 5 0 4 3 8 5 8 1 0 1.3-.5 2.5-.5s1.5.5 2.5.5c2 0 5-4 5-8 0-6-5.5-6.5-7.5-5z"/><path d="M12 7.5c0-2 1-4 3-4.5"/>'],
+ ["meal","Meal",'<circle cx="12" cy="12" r="5"/><path d="M3 4v5a1.5 1.5 0 0 0 3 0V4M4.5 9v11M21 4c-1.5 0-2.5 2-2.5 5H21v11"/>'],
+ ["heart","Heart",'<path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z"/>'],
+ ["sleep","Sleep",'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/><path d="M15 3h4l-4 4h4"/>'],
+ ["nophone","No phone",'<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/><path d="M3 3l18 18"/>'],
+ ["sun","Outside",'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'],
+ ["shoe","Run",'<path d="M2 18v-6.5L6 10c1 2 3 3 5 2l1.5-4L15 9l-.5 3 5 2.5A3 3 0 0 1 21 17v1z"/><path d="M2 18h19M8 14l1.5-1M10.5 15.5 12 14.5"/>'],
+ ["dumbbell","Weights",'<rect x="4" y="7" width="3" height="10" rx="1"/><rect x="17" y="7" width="3" height="10" rx="1"/><path d="M7 12h10M2 10v4M22 10v4"/>'],
+ ["bike","Bike",'<circle cx="5.5" cy="16" r="3.5"/><circle cx="18.5" cy="16" r="3.5"/><path d="M5.5 16 9 9h7l2.5 7M9 9l3.5 7h-7M16 9l-1-3h2.5M8 6.5h3M9.5 6.5 9 9"/>'],
+ ["swim","Swim",'<path d="M2 15.5c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><path d="M2 19.5c2 0 2-1.5 4-1.5s2 1.5 4 1.5 2-1.5 4-1.5 2 1.5 4 1.5 2-1.5 4-1.5"/><circle cx="17" cy="6" r="2"/><path d="M5 11.5l5-3.5 3.5 3.5"/>'],
+ ["stretch","Stretch",'<circle cx="12" cy="4.5" r="2"/><path d="M4 9l8 2 8-2M12 11v4l-4 6M12 15l4 6"/>'],
+ ["walk","Walk",'<circle cx="13" cy="4" r="2"/><path d="M12.5 8 11 14M11 14l3.5 3v4M11 14l-3 7M12.3 9.5l4 3M12.3 9.5 8 11.5l-1 3"/>'],
+ ["timer","Timer",'<circle cx="12" cy="14" r="7"/><path d="M12 14v-4M10 3h4M12 3v4M18.5 7.5 20 6"/>'],
+ ["mountain","Hike",'<path d="M2 20 9 7l4 7 2-3 7 9z"/><path d="M7.2 10.5 9 12l1.5-1.8"/>'],
+ ["book","Read",'<path d="M12 6c-2-1.5-5-2-8-2v14c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v14"/>'],
+ ["journal","Journal",'<path d="M4 3h9a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H4z"/><path d="M7.5 3v18"/><path d="M20 4l2 2-7 9-3 1 1-3z"/>'],
+ ["meditate","Meditate",'<circle cx="12" cy="5" r="2"/><path d="M12 8v5M7 11l5 2 5-2M4 19c2-3 5-4 8-4s6 1 8 4z"/>'],
+ ["brain","Brain",'<path d="M12 5a3 3 0 0 0-5.5-1.5A3 3 0 0 0 4 8a3 3 0 0 0-.5 5A3 3 0 0 0 6 18a3 3 0 0 0 6 1zM12 5a3 3 0 0 1 5.5-1.5A3 3 0 0 1 20 8a3 3 0 0 1 .5 5 3 3 0 0 1-2.5 5 3 3 0 0 1-6 1"/><path d="M12 5v14"/>'],
+ ["headphones","Listen",'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="6" rx="1.5"/><rect x="17" y="14" width="4" height="6" rx="1.5"/>'],
+ ["bulb","Learn",'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z"/>'],
+ ["smile","Gratitude",'<circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.3 2.2 4 2.2s3-.7 4-2.2M9 9.5v.5M15 9.5v.5"/>'],
+ ["leaf","Breathe",'<path d="M5 19C5 10 10 5 20 4c0 9-5 15-13 15z"/><path d="M5 19l8-8"/>'],
+ ["laptop","Work",'<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/>'],
+ ["list","Checklist",'<path d="M10 6h10M10 12h10M10 18h10M3.5 6 5 7.5 7.5 5M3.5 12 5 13.5 7.5 11M4 18h2"/>'],
+ ["calendar","Plan",'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'],
+ ["wallet","Money",'<path d="M4 7h15a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11v3"/><path d="M16 13v1"/>'],
+ ["bag","Shopping",'<path d="M5 8h14l-1 13H6z"/><path d="M9 10V6a3 3 0 0 1 6 0v4"/>'],
+ ["car","Drive",'<path d="M5 17H3v-5l2-5h14l2 5v5h-2M9 17h6"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M3 12h18"/>'],
+ ["call","Call",'<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'],
+ ["mail","Messages",'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>'],
+ ["dog","Dog",'<path d="M7.5 6H6a2 2 0 0 0-2 2v4l3.2 1M16.5 6H18a2 2 0 0 1 2 2v4l-3.2 1"/><path d="M7 7.5C7 6 8 5 9.5 5h5C16 5 17 6 17 7.5V15a5 5 0 0 1-10 0z"/><path d="M10 10.5v.5M14 10.5v.5M12 13.5V15M10.5 16c.5.6 1 .9 1.5.9s1-.3 1.5-.9"/>'],
+ ["music","Music",'<path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>'],
+ ["paint","Create",'<path d="M20.5 3.5 11.5 12.5"/><path d="M11.5 12.5c-2.5-1.5-6 0-6 3.5 0 2-1 3-2.5 4 4.5.5 8-1 9-3.5.4-1.4.3-2.8-.5-4z"/>'],
+ ["pot","Cook",'<path d="M4 10h16v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z"/><path d="M2 10h20M9.5 6.5c0-1 1-1.5 1-2.5M13.5 6.5c0-1 1-1.5 1-2.5"/>'],
+ ["snow","Snowflake",'<path d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 2 3-2M9 20l3-2 3 2"/>'],
+ ["noalcohol","No alcohol",'<path d="M7 3h10l-1 7a4 4 0 0 1-8 0z"/><path d="M12 14v6M9 21h6"/><path d="M3 3l18 18"/>'],
+ ["skincare","Skincare",'<rect x="7" y="9" width="10" height="12" rx="2"/><path d="M10 9V6h4v3M12 6V3h4M10 14h4"/>'],
+ ["sunrise","Sunrise",'<path d="M2 18h20M6 21.5h12"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 9V3M9 6l3-3 3 3M4.2 11.2l1.4 1.4M19.8 11.2l-1.4 1.4"/>'],
+ ["trophy","Win",'<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 21h8M10 17h4l.5 4h-5z"/>'],
+ ["star","Star",'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>']
+];
+const ICON = Object.fromEntries(ICONS.map(([k, l, svg]) => [k, {label: l, svg}]));
+document.head.insertAdjacentHTML("beforeend", "<style>" + ICONS.map(([k, , svg]) =>
+  `.ic-${k}{--m:url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>${svg.replace(/"/g, "'")}</svg>`)}")}`).join("") + "</style>");
+/* Best guess from the task's name, until one's picked in Edit. More specific matches come first. */
+const ICON_GUESS = [
+  ["dog", /\b(dog|pupp?y|pet)\b/], ["snow", /cold (shower|plunge)|ice bath|\bplunge\b/], ["noalcohol", /no (alcohol|beer|booze|drinks?)|\bsober\b|alcohol/],
+  ["nophone", /no (phone|socials?|scroll)|phone (down|away|off)|screen ?time|social media|scroll/], ["call", /\bcall\b|\bring\b|phone (mum|dad|nan|someone)/],
+  ["pot", /cook|meal prep|\bbake\b|recipe/], ["plant", /plant|garden/], ["tooth", /teeth|tooth|floss/],
+  ["bed", /\bbed\b/], ["alarm", /alarm|wake|get up|early/], ["skincare", /skin|moisturi|sunscreen|serum|\bface\b/],
+  ["shower", /shower|\bbath\b/], ["coffee", /coffee|\btea\b/], ["broom", /clean|tidy|vacuum|sweep|dishes|declutter|chore/],
+  ["laundry", /laundry|washing|clothes|fold/], ["water", /water|drink|hydrat/], ["pill", /pill|vitamin|\bmeds?\b|medicine|supplement|tablet|creatine/],
+  ["apple", /fruit|\bveg|apple|salad|eat well|healthy|protein|fibre|fiber|sugar|diet/], ["meal", /meal|breakfast|lunch|dinner|\beat\b|food/],
+  ["sleep", /sleep|\bnap\b|bedtime|lights out/], ["sun", /outside|sunlight|fresh air|nature/], ["mountain", /hike|climb|mountain|trail/],
+  ["bike", /bike|cycl|\bride\b|spin/], ["swim", /swim|pool|laps/], ["stretch", /stretch|yoga|mobility|pilates|foam roll/],
+  ["walk", /walk|steps|stroll/], ["shoe", /\brun|jog|\b\d+ ?k\b/],
+  ["dumbbell", /gym|weight|\blift|push|pull|legs|workout|strength|squat|deadlift|press|\bcurls?\b|\babs\b|\bcore\b|chest|arms/],
+  ["meditate", /meditat|mindful/], ["journal", /journal|writ|diary|\bnotes?\b/], ["book", /read|book|pages|study|kindle/],
+  ["headphones", /podcast|listen|audiobook/], ["music", /music|guitar|piano|instrument|sing/], ["paint", /paint|draw|\bart\b|sketch|creat/],
+  ["bulb", /learn|course|lesson|duolingo|language|practi[cs]e/], ["smile", /gratitude|grateful|mood|smile|happy|thank/],
+  ["leaf", /breath|calm|relax/], ["brain", /brain|puzzle|chess|focus|think/], ["mail", /message|\btext|mail|inbox|reply/],
+  ["laptop", /work|laptop|cod(e|ing)|computer|project/], ["list", /to-?do|checklist|\blist\b/], ["calendar", /plan|calendar|schedule|review/],
+  ["wallet", /money|budget|saving|spend|financ|invest|bank/], ["bag", /shop|groceries|\bbuy\b/], ["car", /drive|\bcar\b|commute/],
+  ["sunrise", /sunrise|morning routine/], ["trophy", /\bwin\b|goal|trophy|achiev|compet/], ["heart", /heart|love|partner|family|kind/], ["timer", /timer|pomodoro|minutes/]
+];
+const guessIcon = name => { const n = String(name || "").toLowerCase(); const g = ICON_GUESS.find(([, re]) => re.test(n)); return g ? g[0] : ""; };
+/* icon set on the task, else the best guess; "" means just the letter */
+const iconKey = it => it.icon != null ? it.icon : guessIcon(it.name);
 
 /* Everything starts blank: every task is added by hand. */
 function defaults(){
@@ -461,6 +550,17 @@ function hero(title, sub, right, nav){
 }
 const chk = `<span class="chk" aria-hidden="true"></span>`;
 const ini = name => `<span class="ini" aria-hidden="true">${esc((name.trim()[0] || "•").toUpperCase())}</span>`;
+const iconHtml = (key, name) => ICON[key] ? `<span class="ini ic ic-${key}" aria-hidden="true"></span>` : ini(name);
+const taskIcon = it => iconHtml(iconKey(it), it.name);
+/* the icon chooser: Auto (best guess), the first letter, or any of the icons */
+function iconGrid(cur, name, attrs){
+  const guess = guessIcon(name);
+  const opt = (v, inner, label) => `<button class="${cur === v ? "on" : ""}" ${attrs} data-v="${v === null ? "auto" : v}" aria-label="${esc(label)}" title="${esc(label)}">${inner}</button>`;
+  return `<div class="icongrid">
+    ${opt(null, `<span class="auto">Auto</span>${guess ? `<span class="ini ic ic-${guess}"></span>` : ""}`, "Auto")}
+    ${opt("", ini(name || "A"), "Letter")}
+    ${ICONS.map(([k, l]) => opt(k, `<span class="ini ic ic-${k}"></span>`, l)).join("")}</div>`;
+}
 const tagHtml = t => t ? `<span class="tag">${esc(t)}</span>` : "";
 const ideasHtml = it => (it.ideas && it.ideas.length) ?
   `<details><summary>ideas</summary><ul>${it.ideas.map(f=>`<li>${esc(f)}</li>`).join("")}</ul></details>` : "";
@@ -493,7 +593,7 @@ function tilesFor(items, rec){
   return items.map((it, idx) => {
     const pulse = j === it.id || j.startsWith(it.id + ":") || j.startsWith(it.id + "#");
     const style = `style="${gvars(GRAD[S.items.indexOf(it) % GRAD.length])};--i:${idx}"`;
-    const label = `${ini(it.name)}<span class="lbl"><span class="name">${esc(it.name)}</span>${tagHtml(it.tag)}</span>`;
+    const label = `${taskIcon(it)}<span class="lbl"><span class="name">${esc(it.name)}</span>${tagHtml(it.tag)}</span>`;
     const tickRow = `<button class="trow${c[it.id]?" done":""}${popIf(it.id)}" data-act="tick" data-k="${it.id}" aria-pressed="${!!c[it.id]}">${label}${chk}</button>`;
     if (it.type === "multi"){
       return `<div class="tile${pulse ? " pulse" : ""}" ${style}><div class="trow">${label}</div>
@@ -759,13 +859,14 @@ function itemEditor(it, idx, len){
   const logs = tracks(it) ? [it.logKm&&"km",it.logTime&&"time"].filter(Boolean).join(" & ")+" · " : "";
   return `<div class="ed" style="${gvars(GRAD[idx % GRAD.length])}">
     <div class="edrow">
-      ${ini(it.name)}
+      ${taskIcon(it)}
       <button class="edname" data-act="edopen" ${attrs} style="margin-left:10px"><span class="name">${esc(it.name)}</span><span class="tag">${it.tag ? esc(it.tag) + " · " : ""}${kind}${logs}${daysLabel(it.days)} ${open?"▾":"▸"}</span></button>
       <button class="ib" data-act="move" ${attrs} data-n="-1" ${idx===0?"disabled":""} aria-label="Move up">↑</button>
       <button class="ib" data-act="move" ${attrs} data-n="1" ${idx===len-1?"disabled":""} aria-label="Move down">↓</button>
     </div>
     ${open ? `<div class="edbody">
       <label class="f">Name<input type="text" data-e="name" ${attrs} value="${esc(it.name)}"></label>
+      <div><span class="f">Icon${it.icon == null ? " · auto" : ""}</span>${iconGrid(it.icon == null ? null : it.icon, it.name, `data-act="edicon" ${attrs}`)}</div>
       <label class="f">Tag<input type="text" data-e="tag" ${attrs} value="${esc(it.tag||"")}" placeholder="e.g. before brushing"></label>
       <div class="qtags">${QUICK_TAGS.map(t=>`<button class="qt ${it.tag===t?"on":""}" data-act="edtag" ${attrs} data-v="${t}">${t}</button>`).join("")}</div>
       ${it.type === "multi" ? `<label class="f">Boxes (comma separated)<input type="text" data-e="subs" ${attrs} value="${esc((it.subs||[]).join(", "))}"></label>` : ""}
@@ -1209,7 +1310,7 @@ function buzz(){
 
 /* Add-a-task sheet. */
 function addSheet(){
-  const st = {name:"", tag:"", days:[...ALL], type:"tick", subs:"", logKm:false, logTime:false, max:"3", list:""};
+  const st = {name:"", tag:"", days:[...ALL], type:"tick", subs:"", logKm:false, logTime:false, max:"3", list:"", icon:null, pick:false};
   const kinds = [["tick","Tick box"],["multi","Row of boxes"],["workout","Workout"],["limit","Daily limit"]];
   const m = document.createElement("div");
   m.className = "modal";
@@ -1218,6 +1319,8 @@ function addSheet(){
       <h3>Add a task</h3>
       <div class="formgrid">
         <label class="f">Task<input id="as-name" type="text" value="${esc(st.name)}" placeholder="e.g. Make bed"></label>
+        <div style="${gvars(GRAD[S.items.length % GRAD.length])}"><button class="iconbtn" data-s="pick"><span id="as-icon">${iconHtml(st.icon == null ? guessIcon(st.name) : st.icon, st.name || "A")}</span><span>Icon${st.icon == null ? " · auto" : ""}</span><span class="tag">${st.pick ? "done" : "change"}</span></button>
+          ${st.pick ? iconGrid(st.icon, st.name, 'data-s="icon"') : ""}</div>
         <label class="f">Tag (optional)<input id="as-tag" type="text" value="${esc(st.tag)}" placeholder="e.g. before brushing"></label>
         <div class="qtags">${QUICK_TAGS.map(t=>`<button class="qt ${st.tag===t?"on":""}" data-s="qtag" data-v="${t}">${t}</button>`).join("")}</div>
         <div><span class="f">Kind</span><div class="kinds">${kinds.map(([k,l])=>`<button class="${st.type===k?"on":""}" data-s="type" data-v="${k}">${l}</button>`).join("")}</div></div>
@@ -1236,7 +1339,11 @@ function addSheet(){
   };
   m.addEventListener("input", e => {
     const id = e.target.id;
-    if (id === "as-name") st.name = e.target.value;
+    if (id === "as-name"){
+      st.name = e.target.value;
+      const prev = document.getElementById("as-icon");
+      if (prev && st.icon == null) prev.innerHTML = iconHtml(guessIcon(st.name), st.name || "A");
+    }
     else if (id === "as-tag") st.tag = e.target.value;
     else if (id === "as-subs") st.subs = e.target.value;
     else if (id === "as-max") st.max = e.target.value;
@@ -1249,6 +1356,8 @@ function addSheet(){
     const s = b.dataset.s;
     if (s === "cancel"){ m.remove(); return; }
     if (s === "type"){ st.type = b.dataset.v; draw(); return; }
+    if (s === "pick"){ st.pick = !st.pick; draw(); return; }
+    if (s === "icon"){ st.icon = b.dataset.v === "auto" ? null : b.dataset.v; st.pick = false; draw(); return; }
     if (s === "log"){ st[b.dataset.v] = !st[b.dataset.v]; draw(); return; }
     if (s === "qtag"){ st.tag = st.tag === b.dataset.v ? "" : b.dataset.v; draw(); return; }
     if (s === "day"){ const d = Number(b.dataset.v); st.days = st.days.includes(d) ? st.days.filter(x=>x!==d) : [...st.days, d].sort(); draw(); return; }
@@ -1258,6 +1367,7 @@ function addSheet(){
       if (!st.days.length){ toast("Pick at least one day"); return; }
       buzz();
       const it = {id:uid(), name, tag:st.tag.trim(), days:st.days};
+      if (st.icon != null) it.icon = st.icon;
       if (st.type !== "tick") it.type = st.type;
       if (st.type === "tick" || st.type === "workout"){ if (st.logKm) it.logKm = true; if (st.logTime) it.logTime = true; }
       if (st.type === "limit"){
@@ -1361,6 +1471,7 @@ document.addEventListener("click", async e => {
     }
     case "statwk": ui.statWeek = Number(el.dataset.i); render(); break;
     case "edlog": { const it = findItem(el.dataset.id), f = el.dataset.f; it[f] = !it[f]; save(); render(); break; }
+    case "edicon": { const it = findItem(el.dataset.id), v = el.dataset.v; if (v === "auto") delete it.icon; else it.icon = v; save(); render(); break; }
     case "edtag": { const it = findItem(el.dataset.id); it.tag = it.tag === el.dataset.v ? "" : el.dataset.v; save(); render(); break; }
     case "addsheet": addSheet(); break;
     case "edopen": ui.open = ui.open === el.dataset.id ? null : el.dataset.id; render(); break;
