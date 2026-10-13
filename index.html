@@ -798,23 +798,40 @@ const Fluid = (() => {
   const ctx = cv.getContext("2d"), N = 56;
   let W = 0, H = 0, dpr = 0, key = null, frac = 0, level = 0, rise = 0, active = false, raf = 0, t = 0, last = 0, col = null;
   const cols = Array.from({length:N}, () => ({h:0, v:0}));
-  let rain = null, streaks = [], bits = [], bubbles = [];
+  let rain = null, streaks = [], bits = [], bubbles = [], sweep = null;
   const lerp = (a,b,k) => a + (b-a)*k;
 
   function resize(){
     const r = window.devicePixelRatio || 1, w = innerWidth, h = innerHeight;
     if (w !== W || h !== H || r !== dpr){ W = w; H = h; dpr = r; cv.width = W*r; cv.height = H*r; }
   }
-  const base = () => H - (0.035 + 0.965*level)*(H + 24);          // a sliver at 0%, over the top at 100%
+  const toY = l => H - (0.035 + 0.965*l)*(H + 24);                // a sliver at 0%, over the top at 100%
+  const ease = u => u*u*(3 - 2*u);
+  // changing day: the new level rolls in sideways as a wave from the side the new day comes from,
+  // with a soft crest riding along its front
+  const BAND = 1.1;
+  function sweepAt(x){
+    const u = sweep.dir > 0 ? 1 - x/W : x/W, f = ease(sweep.p)*(1 + BAND);
+    return ease(Math.max(0, Math.min(1, (f - u)/BAND)));
+  }
+  function base(x){
+    if (!sweep) return toY(level);
+    const k = sweepAt(x), crest = Math.sin(Math.PI*k)*Math.min(1, Math.abs(level - sweep.from)*2.5)*26*(1 - sweep.p*0.6);
+    return toY(sweep.from + (level - sweep.from)*k) - crest;
+  }
   function colH(x){ const i = Math.max(0, Math.min(N-1, x/W*(N-1))), i0 = Math.floor(i), i1 = Math.min(N-1, i0+1), k = i - i0; return cols[i0].h*(1-k) + cols[i1].h*k; }
-  function surfY(x, ph = 0){ return base() + colH(x) + 3.5*Math.sin(x*0.011 + t*0.022 + ph) + 2*Math.sin(x*0.029 - t*0.036 + ph*1.7); }
+  function surfY(x, ph = 0){ return base(x) + colH(x) + 3.5*Math.sin(x*0.011 + t*0.022 + ph) + 2*Math.sin(x*0.029 - t*0.036 + ph*1.7); }
   function kick(x, power, spread){
     const c = Math.round(Math.max(0, Math.min(1, x/W))*(N-1));
     for (let j = -spread; j <= spread; j++){ const k = cols[c+j]; if (k) k.v += power/(1 + Math.abs(j)*0.8); }
   }
   function update(state){
     col = themeColours(); resize();
-    if (state.key !== key){ key = state.key; frac = level = state.frac; rise = 0; rain = null; streaks = []; bits = []; cols.forEach(c => { c.h = 0; c.v = 0; }); }
+    if (state.key !== key){
+      const from = sweep ? sweep.from + (level - sweep.from)*sweepAt(W/2) : level;
+      sweep = key !== null && !reduceMotion() && Math.abs(state.frac - from) > 0.002 ? {from, p:0, dir: state.key > key ? 1 : -1} : null;
+      key = state.key; frac = level = state.frac; rise = 0; rain = null; streaks = []; bits = [];
+    }
     else {
       const up = state.frac > frac; frac = state.frac;
       const x = state.x != null ? state.x : W/2;
@@ -850,6 +867,12 @@ const Fluid = (() => {
       level += rise;
     }
     if (Math.abs(frac - level) < 0.0005 && Math.abs(rise) < 0.00005){ level = frac; rise = 0; }
+    if (sweep){
+      sweep.p = Math.min(1, sweep.p + dt/96);                     // about 1.6 seconds across
+      const fx = (sweep.dir > 0 ? 1 - ease(sweep.p)*(1 + BAND) + BAND/2 : ease(sweep.p)*(1 + BAND) - BAND/2)*W;
+      if (fx > 0 && fx < W) kick(fx, -0.5*Math.sign(level - sweep.from), 2);
+      if (sweep.p >= 1) sweep = null;
+    }
     // ripples: fixed-size steps so a slow frame can't make the springs blow up
     for (let step = 0, n = Math.max(1, Math.round(dt)); step < n; step++){
       for (const c of cols){ c.v += -0.02*c.h - 0.04*c.v; c.h = Math.max(-60, Math.min(60, c.h + c.v)); }
@@ -886,7 +909,7 @@ const Fluid = (() => {
     if (!col) col = themeColours();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
-    const top = base() - 20;
+    const top = Math.min(base(0), base(W/2), base(W)) - 30;
     // a second swell just behind the front one
     fill(x => surfY(x, 2.1) - 7, col.w1 + "40");
     // the body of water
