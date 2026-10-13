@@ -1,6 +1,6 @@
 // Offline support. The page itself is network-first (so updates show on the next open) and falls
 // back to the saved copy when offline; icons and the manifest come from the cache and refresh quietly.
-const CACHE = "the-standard-v29";
+const CACHE = "the-standard-v30";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

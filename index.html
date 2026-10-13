@@ -245,6 +245,8 @@ details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
 .tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 body[data-tab=today]{touch-action:pan-y pinch-zoom}
 .lazybtn{margin-top:10px}
+.lazyleft{margin:6px 0 4px;padding-left:20px;font-weight:800}
+.lazyleft li{margin:3px 0}
 .lazycard{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:16px 18px}
 .lazycard b{font-size:17px}
 .lazycard span{color:var(--soft);font-size:14px;font-weight:700}
@@ -1070,6 +1072,28 @@ function toast(msg){
   t.textContent = msg; t.classList.add("show");
   clearTimeout(toastT); toastT = setTimeout(()=>t.classList.remove("show"), 2400);
 }
+/* A second look before using the week's lazy day: what's still left, and that it's the only one. */
+function lazyCheck(){
+  const c = (peek(ui.week).days[ui.day] || {}).c || {};
+  const left = itemsFor(ui.day).filter(it => it.type !== "limit" &&
+    !(it.type === "multi" ? (it.subs || []).every((_, k) => c[it.id + ":" + k]) : c[it.id]));
+  const rest = 6 - ui.day;
+  const list = left.length ? `<p class="hint" style="margin:0">Still to tick:</p><ul class="lazyleft">${left.slice(0,5).map(it => `<li>${esc(it.name)}</li>`).join("")}${left.length > 5 ? `<li>+ ${left.length - 5} more</li>` : ""}</ul>` : "";
+  return new Promise(res => {
+    const m = document.createElement("div");
+    m.className = "modal";
+    m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="Lazy day?">
+      <h3 style="margin:0 0 8px">Worth a lazy day? 💤</h3>
+      ${list}
+      <p>It's your only one this week${rest ? `, with ${rest} more day${rest === 1 ? "" : "s"} to go` : ""}. Could you knock out even one of these instead?</p>
+      <button class="btn primary" data-r="0">Keep going 💧</button><button class="btn" data-r="1">Yes, take the lazy day</button></div>`;
+    m.addEventListener("click", e => {
+      const b = e.target.closest("[data-r]");
+      if (b || e.target === m){ m.remove(); res(!!(b && b.dataset.r === "1")); }
+    });
+    document.body.appendChild(m);
+  });
+}
 function ask(msg, ok){
   return new Promise(res => {
     const m = document.createElement("div");
@@ -1213,6 +1237,11 @@ document.addEventListener("click", async e => {
       buzz();
       const on = el.dataset.v === "1";
       if (on && lazyDayIn(ui.week) != null) break;
+      if (on){
+        const p = prog(ui.week, ui.day);
+        if (p.total && p.done === p.total){ toast("This day's already full. Save the lazy day 💧"); break; }
+        if (!(await lazyCheck())) break;
+      }
       const rec = dayRec(ui.week, ui.day);
       if (on) rec.lazy = true; else delete rec.lazy;
       save(); render();
