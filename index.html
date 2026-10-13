@@ -243,6 +243,7 @@ details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
 .tabs .in{display:flex;width:100%;max-width:520px;background:var(--bg2);-webkit-backdrop-filter:blur(18px) saturate(150%);backdrop-filter:blur(18px) saturate(150%);border-radius:24px;box-shadow:0 14px 34px rgba(0,0,0,.35),var(--hi);padding:6px}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border-radius:18px;font-size:12px;font-weight:800;color:var(--muted);text-align:center}
 .tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+body[data-tab=today]{touch-action:pan-y pinch-zoom}
 .tabs .in{position:relative}
 .tab{position:relative;z-index:1;transition:color .35s ease}
 .tab svg{transition:transform .45s cubic-bezier(.22,1,.36,1)}
@@ -976,6 +977,7 @@ function render(){
   ui.event = null; ui.just = null;
   renderTabs();
   updateBadge();
+  document.body.dataset.tab = ui.tab;
 }
 /* the number on the Home Screen icon: what's left to tick today */
 function updateBadge(){
@@ -1326,35 +1328,63 @@ document.getElementById("restoreFile").addEventListener("change", async e => {
 });
 
 /* new day / new week while the app sat open in the background */
-/* swipe sideways on Today to change day: the page follows your finger a little, then glides */
+/* swipe sideways on Today to change day: the page tracks your finger, carries on off the side
+   in the same direction, and the next day slides in behind it in one motion */
 (() => {
-  let sx = 0, sy = 0, st = 0, dx = 0, mode = null;
+  let sx = 0, sy = 0, dx = 0, mode = null, busy = false, pts = [], frame = 0;
   const app = () => document.getElementById("app");
   const skip = t => t.closest("input, textarea, select, .seg, .modal, .sheet, .kinds, .dpick, .qtags, .tabs") ||
     [...function*(){ for (let n = t; n && n !== document.body; n = n.parentElement) yield n; }()].some(n => n.scrollWidth > n.clientWidth + 2 && getComputedStyle(n).overflowX !== "visible");
+  const look = d => { const W = innerWidth; return {x: d*0.9, o: 1 - Math.min(0.45, Math.abs(d)/W*0.7)}; };
+  const paint = () => { frame = 0; const a = app(), l = look(dx); a.style.transform = `translate3d(${l.x}px,0,0)`; a.style.opacity = l.o; };
   document.addEventListener("touchstart", e => {
-    mode = null; dx = 0;
-    if (ui.tab !== "today" || e.touches.length !== 1 || skip(e.target)) return;
-    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); mode = "wait";
+    mode = null; dx = 0; pts = [];
+    if (busy || ui.tab !== "today" || e.touches.length !== 1 || skip(e.target)) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; mode = "wait";
   }, {passive:true});
   document.addEventListener("touchmove", e => {
     if (!mode) return;
-    const x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy;
+    const cx = e.touches[0].clientX, x = cx - sx, y = e.touches[0].clientY - sy;
     if (mode === "wait"){
-      if (Math.abs(x) < 10 && Math.abs(y) < 10) return;
-      mode = Math.abs(x) > Math.abs(y)*1.3 ? "swipe" : null;
+      if (Math.abs(x) < 8 && Math.abs(y) < 8) return;
+      mode = Math.abs(x) > Math.abs(y)*1.2 ? "swipe" : null;
       if (!mode) return;
+      sx = cx; app().style.willChange = "transform, opacity";   // start from here so it doesn't jump
     }
-    e.preventDefault();
-    dx = x;
-    if (!reduceMotion()){ const a = app(); a.style.transition = "none"; a.style.transform = `translateX(${dx*0.35}px)`; }
+    if (e.cancelable) e.preventDefault();
+    const now = performance.now(); pts.push([now, cx]); while (pts.length > 2 && now - pts[0][0] > 90) pts.shift();
+    dx = cx - sx;
+    if (!reduceMotion() && !frame) frame = requestAnimationFrame(paint);
   }, {passive:false});
   const end = () => {
     if (mode !== "swipe"){ mode = null; return; }
     mode = null; ui.swiped = Date.now();
-    const a = app(); a.style.transition = "transform .45s cubic-bezier(.22,1,.36,1)"; a.style.transform = "";
-    const fast = Math.abs(dx) > 35 && Date.now() - st < 260;
-    if (Math.abs(dx) > 70 || fast) stepDay(dx < 0 ? 1 : -1);
+    if (frame){ cancelAnimationFrame(frame); frame = 0; }
+    const a = app(), W = innerWidth, from = look(dx);
+    const vx = pts.length > 1 ? (pts[pts.length-1][1] - pts[0][1])/Math.max(8, pts[pts.length-1][0] - pts[0][0]) : 0;   // px per ms, last ~90ms
+    const go = Math.abs(dx) > W*0.22 || (Math.abs(vx) > 0.3 && Math.abs(dx) > 24 && Math.sign(vx) === Math.sign(dx));
+    a.style.transform = ""; a.style.opacity = "";
+    const settle = () => { a.style.willChange = ""; busy = false; };
+    if (reduceMotion()){ settle(); if (go) stepDay(dx < 0 ? 1 : -1); return; }
+    busy = true;
+    if (!go){
+      a.animate([{transform:`translate3d(${from.x}px,0,0)`, opacity:from.o}, {transform:"none", opacity:1}],
+        {duration:380, easing:"cubic-bezier(.22,1.25,.36,1)"}).onfinish = settle;
+      return;
+    }
+    const n = dx < 0 ? 1 : -1;
+    buzz();
+    // carry on at the speed the finger was going (this easing starts at 3x its average speed)
+    const dist = Math.max(40, W*0.85 - Math.abs(from.x)), dur = Math.min(320, Math.max(150, 3*dist/Math.max(Math.abs(vx), 0.9)));
+    const out = a.animate([{transform:`translate3d(${from.x}px,0,0)`, opacity:from.o}, {transform:`translate3d(${-n*(Math.abs(from.x) + dist)}px,0,0)`, opacity:0}],
+      {duration:dur, easing:"cubic-bezier(.2,.6,.5,1)", fill:"forwards"});
+    out.onfinish = () => {
+      const date = addDays(fromKey(ui.week), ui.day + n);
+      ui.week = keyOf(mondayOf(date)); ui.day = dow(date);
+      render(); window.scrollTo(0,0); out.cancel();
+      a.animate([{transform:`translate3d(${n*W*0.4}px,0,0)`, opacity:0}, {transform:"none", opacity:1}],
+        {duration:440, easing:"cubic-bezier(.22,1,.36,1)"}).onfinish = settle;
+    };
   };
   document.addEventListener("touchend", end);
   document.addEventListener("touchcancel", end);
