@@ -767,6 +767,8 @@ function viewEdit(){
     <div class="card">
       <div class="setrow"><span>Buzz on tick<small>iOS 18 or newer</small></span>
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.haptics!==false)===v?"on":""}" data-act="haptics" data-v="${v}">${l}</button>`).join("")}</div></div>
+      <div class="setrow"><span>Badge on app icon<small>${"setAppBadge" in navigator ? "Shows what's left to tick today" : "Works once added to your Home Screen"}</small></span>
+        <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.badge===true)===v?"on":""}" data-act="badge" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Look</span>
         <div class="seg">${["auto","light","dark"].map(t=>`<button class="${S.theme===t?"on":""}" data-act="theme" data-t="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join("")}</div></div>
     </div>
@@ -973,6 +975,13 @@ function render(){
   Fluid.update({...ui.fluid, event: ui.tab === "today" ? ui.event : null, x:ui.tapX});
   ui.event = null; ui.just = null;
   renderTabs();
+  updateBadge();
+}
+/* the number on the Home Screen icon: what's left to tick today */
+function updateBadge(){
+  if (!("setAppBadge" in navigator)) return;
+  const t = tally(itemsFor(NOW.day), (peek(NOW.week).days || {})[NOW.day]), left = t.total - t.done;
+  (S.badge && left > 0 ? navigator.setAppBadge(left) : navigator.clearAppBadge()).catch(() => {});
 }
 /* the tab bar is built once so the highlight can glide between tabs */
 function renderTabs(){
@@ -1146,10 +1155,17 @@ function applyTheme(){
 }
 
 /* ---------- actions ---------- */
+function stepDay(n){
+  buzz();
+  const date = addDays(fromKey(ui.week), ui.day + n);
+  ui.week = keyOf(mondayOf(date)); ui.day = dow(date);
+  nav(n);
+}
 const findItem = id => S.items.find(i => i.id === id);
 const today = () => { NOW = nowInfo(); ui.week = NOW.week; ui.day = NOW.day; };
 
 document.addEventListener("click", async e => {
+  if (Date.now() - (ui.swiped || 0) < 400) return;   // the tail end of a swipe isn't a tap
   if (e.isTrusted) ui.tapX = e.clientX;
   const el = e.target.closest("[data-act]");
   if (!el) return;
@@ -1167,12 +1183,7 @@ document.addEventListener("click", async e => {
     case "openday":
       ui.day = Number(el.dataset.d); ui.scrollId = el.dataset.check ? "weeklycheck" : null; go("today");
       break;
-    case "day": {
-      buzz();
-      const date = addDays(fromKey(ui.week), ui.day + Number(el.dataset.n));
-      ui.week = keyOf(mondayOf(date)); ui.day = dow(date);
-      nav(Number(el.dataset.n)); break;
-    }
+    case "day": stepDay(Number(el.dataset.n)); break;
     case "appadd": {
       const ch = wk(ui.week).check; ch.apps = ch.apps || []; ch.apps.push({name:"", h:""});
       save(); render();
@@ -1225,6 +1236,16 @@ document.addEventListener("click", async e => {
       break;
     }
     case "haptics": S.haptics = el.dataset.v === "true"; save(); render(); if (S.haptics) buzz(); break;
+    case "badge": {
+      const on = el.dataset.v === "true";
+      if (on && !("setAppBadge" in navigator)){ toast("Add the app to your Home Screen first, then turn this on there."); break; }
+      // iPhone only shows badges once notifications are allowed for the app (nothing is ever sent)
+      if (on && window.Notification && Notification.permission !== "granted"){
+        let r = "denied"; try { r = await Notification.requestPermission(); } catch(err){}
+        if (r !== "granted"){ toast("Allow notifications for this app in Settings to see the badge."); break; }
+      }
+      S.badge = on; save(); render(); break;
+    }
     case "theme": S.theme = el.dataset.t; save(); applyTheme(); render(); break;
     case "backup": backup(); break;
     case "restore": document.getElementById("restoreFile").click(); break;
@@ -1305,6 +1326,40 @@ document.getElementById("restoreFile").addEventListener("change", async e => {
 });
 
 /* new day / new week while the app sat open in the background */
+/* swipe sideways on Today to change day: the page follows your finger a little, then glides */
+(() => {
+  let sx = 0, sy = 0, st = 0, dx = 0, mode = null;
+  const app = () => document.getElementById("app");
+  const skip = t => t.closest("input, textarea, select, .seg, .modal, .sheet, .kinds, .dpick, .qtags, .tabs") ||
+    [...function*(){ for (let n = t; n && n !== document.body; n = n.parentElement) yield n; }()].some(n => n.scrollWidth > n.clientWidth + 2 && getComputedStyle(n).overflowX !== "visible");
+  document.addEventListener("touchstart", e => {
+    mode = null; dx = 0;
+    if (ui.tab !== "today" || e.touches.length !== 1 || skip(e.target)) return;
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now(); mode = "wait";
+  }, {passive:true});
+  document.addEventListener("touchmove", e => {
+    if (!mode) return;
+    const x = e.touches[0].clientX - sx, y = e.touches[0].clientY - sy;
+    if (mode === "wait"){
+      if (Math.abs(x) < 10 && Math.abs(y) < 10) return;
+      mode = Math.abs(x) > Math.abs(y)*1.3 ? "swipe" : null;
+      if (!mode) return;
+    }
+    e.preventDefault();
+    dx = x;
+    if (!reduceMotion()){ const a = app(); a.style.transition = "none"; a.style.transform = `translateX(${dx*0.35}px)`; }
+  }, {passive:false});
+  const end = () => {
+    if (mode !== "swipe"){ mode = null; return; }
+    mode = null; ui.swiped = Date.now();
+    const a = app(); a.style.transition = "transform .45s cubic-bezier(.22,1,.36,1)"; a.style.transform = "";
+    const fast = Math.abs(dx) > 35 && Date.now() - st < 260;
+    if (Math.abs(dx) > 70 || fast) stepDay(dx < 0 ? 1 : -1);
+  };
+  document.addEventListener("touchend", end);
+  document.addEventListener("touchcancel", end);
+})();
+
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible") return;
   const n = nowInfo();
