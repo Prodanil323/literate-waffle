@@ -896,10 +896,6 @@ function viewEdit(){
 
     <h2>Settings</h2>
     <div class="card">
-      <div class="setrow"><span>Buzz on tick<small>iOS 18 or newer</small></span>
-        <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.haptics!==false)===v?"on":""}" data-act="haptics" data-v="${v}">${l}</button>`).join("")}</div></div>
-      <div class="setrow"><span>Badge on app icon<small>${"setAppBadge" in navigator ? "Shows what's left to tick today" : "Works once added to your Home Screen"}</small></span>
-        <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.badge===true)===v?"on":""}" data-act="badge" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow stack"><span>Sky<small>Auto follows the time of day, or keep one all the time</small></span>
         <div class="seg">${[["auto","Auto"],["rise","Sunrise"],["noon","Noon"],["set","Sunset"],["night","Night"]].map(([v,l])=>`<button class="${SKY.mode()===v?"on":""}" data-act="sky" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Look</span>
@@ -1184,15 +1180,10 @@ function render(){
   Fluid.update({...ui.fluid, event: ui.tab === "today" ? ui.event : null, x:ui.tapX});
   ui.event = null; ui.just = null;
   renderTabs();
-  updateBadge();
   document.body.dataset.tab = ui.tab;
 }
-/* the number on the Home Screen icon: what's left to tick today */
-function updateBadge(){
-  if (!("setAppBadge" in navigator)) return;
-  const t = tally(itemsFor(NOW.day), (peek(NOW.week).days || {})[NOW.day]), left = isLazy(NOW.week, NOW.day) ? 0 : t.total - t.done;
-  (S.badge && left > 0 ? navigator.setAppBadge(left) : navigator.clearAppBadge()).catch(() => {});
-}
+/* the old icon badge is gone; clear any number it left behind */
+function updateBadge(){ if (navigator.clearAppBadge) navigator.clearAppBadge().catch(() => {}); }
 /* the tab bar is built once so the highlight can glide between tabs */
 function renderTabs(){
   const bar = document.getElementById("tabs");
@@ -1290,23 +1281,6 @@ function ask(msg, ok){
     document.body.appendChild(m);
   });
 }
-/* A little buzz on tick. Android has vibrate(); on iPhone (iOS 18+) toggling a hidden
-   switch control gives a system haptic tap. Must run inside the tap itself. */
-function buzz(){
-  if (S.haptics === false) return;
-  try {
-    if (navigator.vibrate){ navigator.vibrate(12); return; }
-    // iPhone (iOS 18 and newer, including iOS 26): web apps can't vibrate directly, but flipping a
-    // native switch control plays the system haptic. Build a hidden one, flip it, remove it.
-    // This has to happen synchronously inside the tap, so call it before anything async.
-    const label = document.createElement("label"), input = document.createElement("input");
-    label.setAttribute("aria-hidden", "true"); label.style.display = "none";
-    input.type = "checkbox"; input.setAttribute("switch", "");
-    label.appendChild(input); document.head.appendChild(label);
-    label.click();
-    label.remove();
-  } catch(e){}
-}
 
 /* Add-a-task sheet. */
 function addSheet(){
@@ -1365,7 +1339,6 @@ function addSheet(){
       const name = st.name.trim();
       if (!name){ toast("Give it a name first"); document.getElementById("as-name").focus(); return; }
       if (!st.days.length){ toast("Pick at least one day"); return; }
-      buzz();
       const it = {id:uid(), name, tag:st.tag.trim(), days:st.days};
       if (st.icon != null) it.icon = st.icon;
       if (st.type !== "tick") it.type = st.type;
@@ -1398,7 +1371,6 @@ function applyTheme(){
 
 /* ---------- actions ---------- */
 function stepDay(n){
-  buzz();
   const date = addDays(fromKey(ui.week), ui.day + n);
   ui.week = keyOf(mondayOf(date)); ui.day = dow(date);
   nav(n);
@@ -1427,7 +1399,6 @@ document.addEventListener("click", async e => {
       break;
     case "day": stepDay(Number(el.dataset.n)); break;
     case "lazy": {
-      buzz();
       const on = el.dataset.v === "1";
       if (on && lazyDayIn(ui.week) != null) break;
       if (on){
@@ -1449,7 +1420,6 @@ document.addEventListener("click", async e => {
     }
     case "appdel": { const ch = wk(ui.week).check; (ch.apps || []).splice(Number(el.dataset.i), 1); save(); render(); break; }
     case "tick": {
-      buzz();
       const before = isFull(ui.week, ui.day);
       const c = dayRec(ui.week, ui.day).c, k = el.dataset.k;
       if (c[k]){ delete c[k]; ui.event = "wobble"; } else { c[k] = true; ui.just = k; ui.event = "tick"; }
@@ -1460,7 +1430,6 @@ document.addEventListener("click", async e => {
       break;
     }
     case "limit": {
-      buzz();
       const rec = dayRec(ui.week, ui.day), k = el.dataset.k, i = Number(el.dataset.i), it = findItem(k);
       rec.n = rec.n || {};
       rec.n[k] = (rec.n[k] === i+1) ? i : i+1;
@@ -1492,17 +1461,6 @@ document.addEventListener("click", async e => {
         ui.open = null; save(); render(); toast("Removed");
       }
       break;
-    }
-    case "haptics": S.haptics = el.dataset.v === "true"; save(); render(); if (S.haptics) buzz(); break;
-    case "badge": {
-      const on = el.dataset.v === "true";
-      if (on && !("setAppBadge" in navigator)){ toast("Add the app to your Home Screen first, then turn this on there."); break; }
-      // iPhone only shows badges once notifications are allowed for the app (nothing is ever sent)
-      if (on && window.Notification && Notification.permission !== "granted"){
-        let r = "denied"; try { r = await Notification.requestPermission(); } catch(err){}
-        if (r !== "granted"){ toast("Allow notifications for this app in Settings to see the badge."); break; }
-      }
-      S.badge = on; save(); render(); break;
     }
     case "theme": S.theme = el.dataset.t; save(); applyTheme(); render(); break;
     case "sky": S.sky = el.dataset.v; save(); SKY.apply(); render(); break;
@@ -1642,7 +1600,6 @@ document.getElementById("restoreFile").addEventListener("change", async e => {
       return;
     }
     const n = dx < 0 ? 1 : -1;
-    buzz();
     // carry on at the speed the finger was going (this easing starts at 3x its average speed)
     const dist = Math.max(40, W*0.85 - Math.abs(from.x)), dur = Math.min(320, Math.max(150, 3*dist/Math.max(Math.abs(vx), 0.9)));
     const out = a.animate([{transform:`translate3d(${from.x}px,0,0)`, opacity:from.o}, {transform:`translate3d(${-n*(Math.abs(from.x) + dist)}px,0,0)`, opacity:0}],
@@ -1673,6 +1630,7 @@ document.addEventListener("visibilitychange", () => {
 save();
 applyTheme();
 render();
+updateBadge();
 
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")){
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js", {updateViaCache: "none"}).catch(()=>{}));
