@@ -795,6 +795,8 @@ function viewEdit(){
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.haptics!==false)===v?"on":""}" data-act="haptics" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Badge on app icon<small>${"setAppBadge" in navigator ? "Shows what's left to tick today" : "Works once added to your Home Screen"}</small></span>
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.badge===true)===v?"on":""}" data-act="badge" data-v="${v}">${l}</button>`).join("")}</div></div>
+      <div class="setrow"><span>Sky<small>Sunrise, noon, sunset and night</small></span>
+        <div class="seg">${[[true,"Time of day"],[false,"Fixed"]].map(([v,l])=>`<button class="${(S.sky!==false)===v?"on":""}" data-act="sky" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Look</span>
         <div class="seg">${["auto","light","dark"].map(t=>`<button class="${S.theme===t?"on":""}" data-act="theme" data-t="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join("")}</div></div>
     </div>
@@ -827,11 +829,17 @@ const Fluid = (() => {
   let W = 0, H = 0, dpr = 0, key = null, frac = 0, level = 0, rise = 0, active = false, raf = 0, t = 0, last = 0, col = null;
   const cols = Array.from({length:N}, () => ({h:0, v:0}));
   let rain = null, streaks = [], bits = [], bubbles = [], sweep = null;
+  // night: faint stars above the water and soft glowing specks drifting in it
+  let night = 0, stars = [], glows = [];
   const lerp = (a,b,k) => a + (b-a)*k;
 
   function resize(){
     const r = window.devicePixelRatio || 1, w = innerWidth, h = innerHeight;
-    if (w !== W || h !== H || r !== dpr){ W = w; H = h; dpr = r; cv.width = W*r; cv.height = H*r; }
+    if (w !== W || h !== H || r !== dpr){
+      W = w; H = h; dpr = r; cv.width = W*r; cv.height = H*r;
+      stars = Array.from({length: Math.round(W*H/9000)}, () => ({x: Math.random()*W, y: Math.random()*H, r: .5 + Math.random()*1.1, ph: Math.random()*6}));
+      glows = Array.from({length: 26}, () => ({x: Math.random()*W, d: Math.random(), r: 1.2 + Math.random()*2, ph: Math.random()*6, vx: (Math.random() - .5)*0.25}));
+    }
   }
   const toY = l => H - (0.035 + 0.965*l)*(H + 24);                // a sliver at 0%, over the top at 100%
   const ease = u => u*u*(3 - 2*u);
@@ -938,6 +946,13 @@ const Fluid = (() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
     const top = Math.min(base(0), base(W/2), base(W)) - 30;
+    if (night > 0.02){
+      for (const s of stars){
+        if (s.y > surfY(s.x) - 12) continue;
+        ctx.fillStyle = `rgba(215,245,255,${night*(0.35 + 0.35*Math.sin(t*0.03 + s.ph))})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+      }
+    }
     // a second swell just behind the front one
     fill(x => surfY(x, 2.1) - 7, col.w1 + "40");
     // the body of water
@@ -956,6 +971,16 @@ const Fluid = (() => {
     }
     ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1.3;
     for (const b of bubbles){ ctx.beginPath(); ctx.arc(b.x + Math.sin(b.y*0.03 + b.ph)*4, b.y, b.r, 0, Math.PI*2); ctx.stroke(); }
+    if (night > 0.02){
+      for (const g of glows){
+        g.x = (g.x + g.vx + W) % W;
+        const s = surfY(g.x), y = s + 18 + g.d*(H - s), a = night*(0.25 + 0.3*Math.sin(t*0.025 + g.ph));
+        if (a <= 0 || y > H) continue;
+        const rg = ctx.createRadialGradient(g.x, y, 0, g.x, y, g.r*5);
+        rg.addColorStop(0, `rgba(160,255,240,${a})`); rg.addColorStop(1, "rgba(160,255,240,0)");
+        ctx.fillStyle = rg; ctx.beginPath(); ctx.arc(g.x, y, g.r*5, 0, Math.PI*2); ctx.fill();
+      }
+    }
     ctx.restore();
     // the surface line
     ctx.strokeStyle = "rgba(255,255,255,.6)"; ctx.lineWidth = 2.2; ctx.beginPath();
@@ -972,7 +997,46 @@ const Fluid = (() => {
   }
   window.addEventListener("resize", () => { if (active){ resize(); draw(); } });
   document.addEventListener("visibilitychange", () => { if (active && document.visibilityState === "visible" && !reduceMotion()) start(); });
-  return {update};
+  function recolour(n){ night = n; col = themeColours(); if (active){ resize(); draw(); } }
+  return {update, recolour};
+})();
+
+/* ---------- sky: the colours follow the time of day ----------
+   Sunrise, noon, sunset and night, all in aqua, teal and ocean blue, blending slowly between them.
+   Each look (light/dark) has its own set so text stays easy to read. [sky top, sky bottom, water top, water deep] */
+const SKY = (() => {
+  const STOPS = [[0,"night"],[4.5,"night"],[6.25,"rise"],[9,"noon"],[16,"noon"],[18.5,"set"],[20.5,"night"],[24,"night"]];
+  const PAL = {
+    dark: {
+      night: ["#02080F","#051424","#1784B8","#031C36"],
+      rise:  ["#0F3A48","#2A7C84","#5FEBDD","#0F7790"],
+      noon:  ["#0E3C5E","#082640","#45DAF7","#0870B0"],
+      set:   ["#051A33","#155F78","#26A9C4","#063A62"]
+    },
+    light: {
+      night: ["#A6CADC","#86B4CC","#2A9FD0","#0E4F80"],
+      rise:  ["#E2F8F4","#BDEDE5","#6EE6DD","#1A8AA8"],
+      noon:  ["#D9F1F8","#B8E3F0","#5ED6F2","#1C7FB8"],
+      set:   ["#C4E2EE","#97CCDC","#3CBCD2","#155F8F"]
+    }
+  };
+  const PROPS = ["--bg","--bg-deep","--water1","--water2"];
+  const rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+  const mix = (a, b, k) => "#" + rgb(a).map((v, i) => Math.round(v + (rgb(b)[i] - v)*k).toString(16).padStart(2, "0")).join("");
+  const isDark = () => { const t = document.documentElement.getAttribute("data-theme"); return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
+  function apply(){
+    const r = document.documentElement.style;
+    if (S.sky === false){ PROPS.forEach(p => r.removeProperty(p)); Fluid.recolour(0); return; }
+    const d = new Date(), h = d.getHours() + d.getMinutes()/60;
+    let i = 0; while (STOPS[i+1][0] <= h) i++;
+    const [h0, a] = STOPS[i], [h1, b] = STOPS[i+1], k = (h - h0)/(h1 - h0), pal = PAL[isDark() ? "dark" : "light"];
+    PROPS.forEach((p, j) => r.setProperty(p, mix(pal[a][j], pal[b][j], k)));
+    Fluid.recolour((a === "night" ? 1 - k : 0) + (b === "night" ? k : 0));
+  }
+  setInterval(apply, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") apply(); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", apply);
+  return {apply};
 })();
 
 /* ---------- render ---------- */
@@ -1201,6 +1265,7 @@ function addSheet(){
 function applyTheme(){
   const r = document.documentElement;
   if (S.theme === "auto") r.removeAttribute("data-theme"); else r.setAttribute("data-theme", S.theme);
+  SKY.apply();
 }
 
 /* ---------- actions ---------- */
@@ -1311,6 +1376,7 @@ document.addEventListener("click", async e => {
       S.badge = on; save(); render(); break;
     }
     case "theme": S.theme = el.dataset.t; save(); applyTheme(); render(); break;
+    case "sky": S.sky = el.dataset.v === "true"; save(); SKY.apply(); render(); break;
     case "backup": backup(); break;
     case "restore": document.getElementById("restoreFile").click(); break;
     case "clearweek":
