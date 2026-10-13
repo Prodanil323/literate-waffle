@@ -244,6 +244,11 @@ details ul{margin:6px 0 0;padding-left:18px;color:var(--soft)}
 .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 6px;border-radius:18px;font-size:12px;font-weight:800;color:var(--muted);text-align:center}
 .tab svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 body[data-tab=today]{touch-action:pan-y pinch-zoom}
+.lazybtn{margin-top:10px}
+.lazycard{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding:16px 18px}
+.lazycard b{font-size:17px}
+.lazycard span{color:var(--soft);font-size:14px;font-weight:700}
+.lazycard .btn{margin:6px 0 0}
 .tabs .in{position:relative}
 .tab{position:relative;z-index:1;transition:color .35s ease}
 .tab svg{transition:transform .45s cubic-bezier(.22,1,.36,1)}
@@ -404,10 +409,18 @@ function prog(key,d){ const w = S.weeks[key]; return tally(itemsFor(d), w && w.d
 function isFull(key,d){ const p = prog(key,d); return p.total > 0 && p.done === p.total; }
 const isFullOn = date => isFull(keyOf(mondayOf(date)), dow(date));
 function fullDaysIn(key){ return ALL.filter(d => isFull(key,d)).length; }
+/* One lazy day a week: it doesn't break a streak (or add to one) and the Sunday check skips it. */
+const isLazy = (key,d) => !!((peek(key).days[d] || {}).lazy);
+const isLazyOn = date => !!(recOn(date) || {}).lazy;
+const lazyDayIn = key => ALL.find(d => isLazy(key,d));
 function streak(){
   let date = new Date(), n = 0;
   if (!isFullOn(date)) date = addDays(date,-1);
-  for (let i=0; i<3000; i++){ if (!isFullOn(date)) break; n++; date = addDays(date,-1); }
+  for (let i=0; i<3000; i++){
+    if (isFullOn(date)) n++;
+    else if (!isLazyOn(date)) break;
+    date = addDays(date,-1);
+  }
   return n;
 }
 function daysLabel(days){
@@ -502,7 +515,8 @@ function viewDay(){
   const pct = p.total ? Math.round(p.done/p.total*100) : 0;
   ui.fluid = {key:`${key}|${d}`, frac:p.total ? p.done/p.total : 0};
   const left = p.total - p.done;
-  const msg = !p.total ? "Add a task to start filling" : !left ? "Full to the top" : `${left} more to fill it`;
+  const lazy = !!rec.lazy, lazyD = lazyDayIn(key);
+  const msg = !p.total ? "Add a task to start filling" : !left ? "Full to the top" : lazy ? "Lazy day · streak's safe 💤" : `${left} more to fill it`;
   let tiles = tilesFor(itemsFor(d), rec);
   if (!tiles) tiles = `<div class="card empty">${S.items.length ? `Nothing on for ${DAYS[d]}. Enjoy it.` : `Your list is empty for now.<br>Tap <b>+ Add task</b> to put in your first one, in the order you do them.`}</div>`;
   const s = streak(), fd = fullDaysIn(key);
@@ -521,7 +535,16 @@ function viewDay(){
     <h2>${isToday ? "Today's list" : `${DAYS[d]}'s list`}</h2>
     <div class="tiles${ui.event === "finale" ? " cheer" : ""}">${tiles}</div>
     <button class="btn primary addbtn" data-act="addsheet">+ Add task</button>
+    ${lazyHtml(d, lazy, lazyD)}
     ${d === 6 ? checkSection() : ""}`;
+}
+
+function lazyHtml(d, lazy, lazyD){
+  if (lazy) return `<div class="card lazycard"><b>💤 Lazy day</b><span>Your streak's safe and the Sunday check won't ask about this day.</span>
+    <button class="btn" data-act="lazy" data-v="0">Undo lazy day</button></div>`;
+  if (lazyD != null) return `<p class="quiet">Lazy day used on ${DAYS[lazyD]} this week.</p>`;
+  return `<button class="btn lazybtn" data-act="lazy" data-v="1">💤 Take a lazy day</button>
+    <p class="quiet" style="margin-top:-4px">One a week. Keeps your streak and skips the Sunday questions for the day.</p>`;
 }
 
 /* What was missed this week (so far), most-missed first. */
@@ -532,7 +555,7 @@ function missedIn(key){
     let of = 0, missed = 0;
     for (const d of ALL){
       const date = addDays(mon, d);
-      if (date > today || !it.days.includes(d)) continue;
+      if (date > today || !it.days.includes(d) || isLazy(key,d)) continue;
       of++;
       const c = ((peek(key).days[d] || {}).c) || {};
       const done = it.type === "multi" ? (it.subs || []).every((_, k) => c[it.id + ":" + k]) : !!c[it.id];
@@ -589,8 +612,8 @@ function viewWeek(){
     const pct = p.total ? Math.round(p.done/p.total*100) : 0, focus = focusOf(d);
     return `<button class="tile wkrow${keyOf(date)===NOW.date?" today":""}" style="${gvars(g)}" data-act="openday" data-d="${d}">
       <span class="ini">${DAYS[d][0]}</span>
-      <span class="name">${DAYS[d]}<small>${fmtShort(date)}${focus ? " · " + esc(focus) : ""} · ${p.done}/${p.total}</small></span>
-      ${ring(pct, g)}<span class="tick">${p.total && p.done===p.total ? "✓" : ""}</span></button>`;
+      <span class="name">${DAYS[d]}<small>${fmtShort(date)}${focus ? " · " + esc(focus) : ""} · ${p.done}/${p.total}${isLazy(key,d) ? " · lazy day" : ""}</small></span>
+      ${ring(pct, g)}<span class="tick">${p.total && p.done===p.total ? "✓" : isLazy(key,d) ? "💤" : ""}</span></button>`;
   }).join("");
   const tot = weekTotals(key), s = streak();
   return hero("The week", `${fullDaysIn(key)}/7 full days${s ? ` · ${s} day streak` : ""}`, "", weekNav()) + `
@@ -621,10 +644,10 @@ function viewStats(){
   }
   // headline numbers
   let best = 0, run = 0, fullAll = 0;
-  eachDay(first, today, d => { if (isFullOn(d)){ fullAll++; run++; best = Math.max(best, run); } else if (keyOf(d) !== NOW.date) run = 0; });
+  eachDay(first, today, d => { if (isFullOn(d)){ fullAll++; run++; best = Math.max(best, run); } else if (keyOf(d) !== NOW.date && !isLazyOn(d)) run = 0; });
   const from30 = new Date(Math.max(first, addDays(today,-29)));
   let done30 = 0, total30 = 0;
-  eachDay(from30, today, d => { const t = tally(itemsFor(dow(d)), recOn(d)); done30 += t.done; total30 += t.total; });
+  eachDay(from30, today, d => { if (isLazyOn(d)) return; const t = tally(itemsFor(dow(d)), recOn(d)); done30 += t.done; total30 += t.total; });
   const rate30 = total30 ? Math.round(done30/total30*100) : 0;
   const tiles = [["Current streak", streak(), GRAD[3]], ["Best streak", best, GRAD[5]], ["Full days", fullAll, GRAD[2]], ["Last 30 days", rate30 + "%", GRAD[1]]]
     .map(([l,v,g]) => `<div class="card stat" style="${gvars(g)}"><b>${v}</b><span>${l}</span></div>`).join("");
@@ -633,7 +656,7 @@ function viewStats(){
   const thisMon = fromKey(NOW.week);
   const weeks = Array.from({length:8}, (_,i) => {
     const mon = addDays(thisMon, -7*(7-i)); let done = 0, total = 0, full = 0;
-    for (const d of ALL){ const date = addDays(mon, d); if (date > today || date < first) continue;
+    for (const d of ALL){ const date = addDays(mon, d); if (date > today || date < first || isLazyOn(date)) continue;
       const t = tally(itemsFor(d), recOn(date)); done += t.done; total += t.total; if (t.total && t.done === t.total) full++; }
     return {mon, pct: total ? Math.round(done/total*100) : null, full};
   });
@@ -644,7 +667,7 @@ function viewStats(){
   // day of week, last 8 weeks
   const from56 = new Date(Math.max(first, addDays(today,-55)));
   const dd = ALL.map(() => ({done:0,total:0}));
-  eachDay(from56, today, d => { const t = tally(itemsFor(dow(d)), recOn(d)); dd[dow(d)].done += t.done; dd[dow(d)].total += t.total; });
+  eachDay(from56, today, d => { if (isLazyOn(d)) return; const t = tally(itemsFor(dow(d)), recOn(d)); dd[dow(d)].done += t.done; dd[dow(d)].total += t.total; });
   const dpct = dd.map(x => x.total ? Math.round(x.done/x.total*100) : null);
   const bestD = dpct.reduce((b,v,i) => v != null && (b < 0 || v > dpct[b]) ? i : b, -1);
   const dcols = dpct.map((v,i) => `<div class="col${v==null?" none":""}${i===bestD?" best":""}"><i style="height:${v==null?2:Math.max(3,v)}%"></i></div>`).join("");
@@ -653,7 +676,7 @@ function viewStats(){
   const taskRows = S.items.filter(it => it.type !== "limit").map(it => {
     let got = 0, poss = 0;
     eachDay(from30, today, d => {
-      if (!it.days.includes(dow(d))) return;
+      if (!it.days.includes(dow(d)) || isLazyOn(d)) return;
       const c = (recOn(d) || {}).c || {};
       if (it.type === "multi"){ (it.subs||[]).forEach((_,k) => { poss++; if (c[it.id+":"+k]) got++; }); }
       else { poss++; if (c[it.id]) got++; }
@@ -982,7 +1005,7 @@ function render(){
 /* the number on the Home Screen icon: what's left to tick today */
 function updateBadge(){
   if (!("setAppBadge" in navigator)) return;
-  const t = tally(itemsFor(NOW.day), (peek(NOW.week).days || {})[NOW.day]), left = t.total - t.done;
+  const t = tally(itemsFor(NOW.day), (peek(NOW.week).days || {})[NOW.day]), left = isLazy(NOW.week, NOW.day) ? 0 : t.total - t.done;
   (S.badge && left > 0 ? navigator.setAppBadge(left) : navigator.clearAppBadge()).catch(() => {});
 }
 /* the tab bar is built once so the highlight can glide between tabs */
@@ -1186,6 +1209,16 @@ document.addEventListener("click", async e => {
       ui.day = Number(el.dataset.d); ui.scrollId = el.dataset.check ? "weeklycheck" : null; go("today");
       break;
     case "day": stepDay(Number(el.dataset.n)); break;
+    case "lazy": {
+      buzz();
+      const on = el.dataset.v === "1";
+      if (on && lazyDayIn(ui.week) != null) break;
+      const rec = dayRec(ui.week, ui.day);
+      if (on) rec.lazy = true; else delete rec.lazy;
+      save(); render();
+      if (on) toast("Lazy day. Streak's safe 💤");
+      break;
+    }
     case "appadd": {
       const ch = wk(ui.week).check; ch.apps = ch.apps || []; ch.apps.push({name:"", h:""});
       save(); render();
