@@ -283,8 +283,9 @@ const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sun
 const SHORT = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 const ALL = [0,1,2,3,4,5,6];
 /* One gradient per weekday (Mon..Sun). Task tiles cycle through the same set. */
-const GRAD = [["#5ED6F2","#0E7FC0"],["#2DD4BF","#0E9FB8"],["#38BDF8","#1D6FD8"],["#67E8F9","#0891B2"],
+const GRAD_BASE = [["#5ED6F2","#0E7FC0"],["#2DD4BF","#0E9FB8"],["#38BDF8","#1D6FD8"],["#67E8F9","#0891B2"],
               ["#7DD3FC","#0284C7"],["#22D3EE","#127FA0"],["#99F6E4","#14B8A6"]];
+let GRAD = GRAD_BASE;   // tinted to match the time of day by SKY
 const gvars = g => `--a1:${g[0]};--a2:${g[1]}`;
 const QUICK_TAGS = ["morning","midday","arvo","evening","night"];
 
@@ -795,7 +796,7 @@ function viewEdit(){
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.haptics!==false)===v?"on":""}" data-act="haptics" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Badge on app icon<small>${"setAppBadge" in navigator ? "Shows what's left to tick today" : "Works once added to your Home Screen"}</small></span>
         <div class="seg">${[[true,"On"],[false,"Off"]].map(([v,l])=>`<button class="${(S.badge===true)===v?"on":""}" data-act="badge" data-v="${v}">${l}</button>`).join("")}</div></div>
-      <div class="setrow"><span>Sky<small>Sunrise, noon, sunset and night</small></span>
+      <div class="setrow"><span>Sky<small>Sunrise, noon, sunset and night colours</small></span>
         <div class="seg">${[[true,"Time of day"],[false,"Fixed"]].map(([v,l])=>`<button class="${(S.sky!==false)===v?"on":""}" data-act="sky" data-v="${v}">${l}</button>`).join("")}</div></div>
       <div class="setrow"><span>Look</span>
         <div class="seg">${["auto","light","dark"].map(t=>`<button class="${S.theme===t?"on":""}" data-act="theme" data-t="${t}">${t[0].toUpperCase()+t.slice(1)}</button>`).join("")}</div></div>
@@ -1002,23 +1003,30 @@ const Fluid = (() => {
 })();
 
 /* ---------- sky: the colours follow the time of day ----------
-   Sunrise, noon, sunset and night, all in aqua, teal and ocean blue, blending slowly between them.
-   Each look (light/dark) has its own set so text stays easy to read. [sky top, sky bottom, water top, water deep] */
+   Sunrise, noon, sunset and night each have their own sky, water and accent colours, blending slowly
+   between them. Each look (light/dark) has its own set so text stays easy to read.
+   [sky top, sky bottom, water top, water deep, accent 1, accent 2]; TASKS are the task colours for each time. */
 const SKY = (() => {
   const STOPS = [[0,"night"],[4.5,"night"],[6.25,"rise"],[9,"noon"],[16,"noon"],[18.5,"set"],[20.5,"night"],[24,"night"]];
   const PAL = {
     dark: {
-      night: ["#02080F","#051424","#1784B8","#031C36"],
-      rise:  ["#0F3A48","#2A7C84","#5FEBDD","#0F7790"],
-      noon:  ["#0E3C5E","#082640","#45DAF7","#0870B0"],
-      set:   ["#051A33","#155F78","#26A9C4","#063A62"]
+      night: ["#04081A","#0B1434","#3F6FD0","#07123A","#7C9BFF","#3A4FC8"],
+      rise:  ["#1B2748","#9C5560","#FFAE85","#35558E","#FFB98F","#E9707A"],
+      noon:  ["#0E3C5E","#082640","#45DAF7","#0870B0","#22D3EE","#0E7FC0"],
+      set:   ["#24183C","#B04A3A","#FF9A55","#5B2C5E","#FFB24E","#EE5A4E"]
     },
     light: {
-      night: ["#A6CADC","#86B4CC","#2A9FD0","#0E4F80"],
-      rise:  ["#E2F8F4","#BDEDE5","#6EE6DD","#1A8AA8"],
-      noon:  ["#D9F1F8","#B8E3F0","#5ED6F2","#1C7FB8"],
-      set:   ["#C4E2EE","#97CCDC","#3CBCD2","#155F8F"]
+      night: ["#BCC8E6","#99A8D6","#5C7FD6","#1E2F6E","#5B7BEA","#2F45A8"],
+      rise:  ["#FDE9DC","#F5C0AE","#FFB08A","#4F7AB0","#FF9F7A","#E0607A"],
+      noon:  ["#D9F1F8","#B8E3F0","#5ED6F2","#1C7FB8","#22D3EE","#0E7FC0"],
+      set:   ["#FBDCC4","#F0A586","#FF8E5A","#7A3F6E","#FF9A4A","#E0505A"]
     }
+  };
+  const TASKS = {
+    night: [["#8AA6FF","#3A4FC8"],["#7FB2FF","#2E5FD0"],["#9AA8FF","#4A55C8"],["#86C2FF","#2C6AD8"],["#A3B5FF","#4A5FD8"],["#7C9BFF","#3448B8"],["#B0C4FF","#5468D8"]],
+    rise:  [["#FFB98F","#E9707A"],["#FFC9A8","#F08A6E"],["#FFA98A","#D9607E"],["#FFD3B0","#F09A6A"],["#FFB2A0","#E2687A"],["#FFC28F","#EE7E62"],["#FFDDC4","#F2A07C"]],
+    noon:  GRAD_BASE,
+    set:   [["#FFB24E","#EE5A4E"],["#FFC266","#F07A3C"],["#FF9F5A","#E0504E"],["#FFD07A","#F08C3A"],["#FFAA66","#E8604A"],["#FFBE5C","#F2743E"],["#FFD89A","#F29A4E"]]
   };
   const PROPS = ["--bg","--bg-deep","--water1","--water2"];
   const rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
@@ -1026,16 +1034,18 @@ const SKY = (() => {
   const isDark = () => { const t = document.documentElement.getAttribute("data-theme"); return t ? t === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; };
   function apply(){
     const r = document.documentElement.style;
-    if (S.sky === false){ PROPS.forEach(p => r.removeProperty(p)); Fluid.recolour(0); return; }
+    if (S.sky === false){ PROPS.forEach(p => r.removeProperty(p)); GRAD = GRAD_BASE; Fluid.recolour(0); return; }
     const d = new Date(), h = d.getHours() + d.getMinutes()/60;
     let i = 0; while (STOPS[i+1][0] <= h) i++;
     const [h0, a] = STOPS[i], [h1, b] = STOPS[i+1], k = (h - h0)/(h1 - h0), pal = PAL[isDark() ? "dark" : "light"];
     PROPS.forEach((p, j) => r.setProperty(p, mix(pal[a][j], pal[b][j], k)));
+    GRAD = TASKS[a].map((g, n) => [mix(g[0], TASKS[b][n][0], k), mix(g[1], TASKS[b][n][1], k)]);
+    GRAD[0] = [mix(pal[a][4], pal[b][4], k), mix(pal[a][5], pal[b][5], k)];   // the main accent: buttons, tab, ticks
     Fluid.recolour((a === "night" ? 1 - k : 0) + (b === "night" ? k : 0));
   }
   setInterval(apply, 60000);
-  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") apply(); });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", apply);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible"){ apply(); render(); } });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { apply(); render(); });
   return {apply};
 })();
 
