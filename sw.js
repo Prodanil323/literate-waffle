@@ -1,5 +1,5 @@
 // Offline support: serve from cache first, refresh the cache in the background.
-const CACHE = "the-standard-v25";
+const CACHE = "the-standard-v26";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
