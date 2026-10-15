@@ -119,6 +119,22 @@ button.trow:active,button.tile:active{transform:scale(.985)}
 .iconbtn{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:8px 14px;border-radius:14px;background:var(--raise);font-weight:800}
 .iconbtn .tag{margin:0 0 0 auto}
 .lbl{flex:1;min-width:0}
+.todo .trow{padding-right:12px}
+.todo .lbl{text-align:left;padding:4px 0}
+.tdtick{flex:none;display:flex;padding:6px}
+.tdtick:active .chk{transform:scale(.9)}
+.tdbar{padding:0 16px 14px}.tdbar .track{margin:0;height:6px}
+.tdbody{padding:0 16px 16px;display:grid;gap:12px}
+.tdnote{margin:0;color:var(--soft);font-size:15px;white-space:pre-wrap}
+.tdbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.tdbtns .btn{min-height:46px;padding:10px}
+.todo.late{box-shadow:var(--sh),var(--hi),inset 3px 0 0 var(--warn)}
+.tag .late{color:var(--warn)}.tag .soon{color:var(--a1)}
+.tddone s{color:var(--soft)}.tddone small{display:block}
+.mustcard{display:grid;gap:8px;width:100%;margin-top:14px;padding:14px 16px;text-align:left;--a1:var(--g1)}
+.mustcard .mrow{display:flex;justify-content:space-between;gap:10px;font-weight:800}
+.mustcard .mrow span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mustcard .mrow small{flex:none;color:var(--soft);font-weight:700}
+.mustcard .more{color:var(--muted);font-weight:700}
 .name{display:block;font-weight:800;font-size:17px}
 .tag{display:block;font-size:13px;font-weight:700;color:var(--soft);margin-top:1px}
 .done .name{color:var(--soft);display:inline-block;background:linear-gradient(var(--a1),var(--a1)) no-repeat 0 58%/100% 2px}
@@ -268,7 +284,7 @@ body[data-tab=today]{touch-action:pan-y pinch-zoom}
 .tab svg{transition:transform .45s cubic-bezier(.22,1,.36,1)}
 .tab.on{color:#fff}
 .tab.on svg{transform:translateY(-1px) scale(1.06)}
-.tabs .pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:18px;background:linear-gradient(140deg,var(--g1),var(--g2));box-shadow:0 6px 14px color-mix(in srgb,var(--g1) 40%,transparent);transform:translateX(calc(var(--t,0)*100%));transition:transform .5s cubic-bezier(.22,1,.36,1)}
+.tabs .pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/5);border-radius:18px;background:linear-gradient(140deg,var(--g1),var(--g2));box-shadow:0 6px 14px color-mix(in srgb,var(--g1) 40%,transparent);transform:translateX(calc(var(--t,0)*100%));transition:transform .5s cubic-bezier(.22,1,.36,1)}
 
 /* overlays */
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 96px);transform:translate(-50%,20px);opacity:0;
@@ -358,7 +374,7 @@ document.head.insertAdjacentHTML("beforeend", "<style>" + ICONS.map(([k, , svg])
   `.ic-${k}{--m:url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>${svg.replace(/"/g, "'")}</svg>`)}")}`).join("") + "</style>");
 /* Best guess from the task's name, until one's picked in Edit. More specific matches come first. */
 const ICON_GUESS = [
-  ["dog", /\b(dog|pupp?y|pet)\b/], ["snow", /cold (shower|plunge)|ice bath|\bplunge\b/], ["noalcohol", /no (alcohol|beer|booze|drinks?)|\bsober\b|alcohol/],
+  ["dog", /\b(dog|pupp?y|pet)\b/], ["calendar", /^book\b|appointment|dentist|doctor|\bgp\b|booking/], ["snow", /cold (shower|plunge)|ice bath|\bplunge\b/], ["noalcohol", /no (alcohol|beer|booze|drinks?)|\bsober\b|alcohol/],
   ["nophone", /no (phone|socials?|scroll)|phone (down|away|off)|screen ?time|social media|scroll/], ["call", /\bcall\b|\bring\b|phone (mum|dad|nan|someone)/],
   ["pot", /cook|meal prep|\bbake\b|recipe/], ["plant", /plant|garden/], ["tooth", /teeth|tooth|floss/],
   ["bed", /\bbed\b/], ["alarm", /alarm|wake|get up|early/], ["skincare", /skin|moisturi|sunscreen|serum|\bface\b/],
@@ -369,7 +385,7 @@ const ICON_GUESS = [
   ["bike", /bike|cycl|\bride\b|spin/], ["swim", /swim|pool|laps/], ["stretch", /stretch|yoga|mobility|pilates|foam roll/],
   ["walk", /walk|steps|stroll/], ["shoe", /\brun|jog|\b\d+ ?k\b/],
   ["dumbbell", /gym|weight|\blift|push|pull|legs|workout|strength|squat|deadlift|press|\bcurls?\b|\babs\b|\bcore\b|chest|arms/],
-  ["meditate", /meditat|mindful/], ["journal", /journal|writ|diary|\bnotes?\b/], ["book", /read|book|pages|study|kindle/],
+  ["meditate", /meditat|mindful/], ["journal", /journal|writ|diary|\bnotes?\b/], ["book", /read|\bbooks?$|pages|study|kindle|novel/],
   ["headphones", /podcast|listen|audiobook/], ["music", /music|guitar|piano|instrument|sing/], ["paint", /paint|draw|\bart\b|sketch|creat/],
   ["bulb", /learn|course|lesson|duolingo|language|practi[cs]e/], ["smile", /gratitude|grateful|mood|smile|happy|thank/],
   ["leaf", /breath|calm|relax/], ["brain", /brain|puzzle|chess|focus|think/], ["mail", /message|\btext|mail|inbox|reply/],
@@ -383,7 +399,7 @@ const iconKey = it => it.icon != null ? it.icon : guessIcon(it.name);
 
 /* Everything starts blank: every task is added by hand. */
 function defaults(){
-  return { v:6, theme:"dark", items:[], weeks:{} };
+  return { v:6, theme:"dark", items:[], weeks:{}, todos:[] };
 }
 
 /* ---------- storage ---------- */
@@ -641,6 +657,7 @@ function viewDay(){
     <h2>${isToday ? "Today's list" : `${DAYS[d]}'s list`}</h2>
     <div class="tiles${ui.event === "finale" ? " cheer" : ""}">${tiles}</div>
     <button class="btn primary addbtn" data-act="addsheet">+ Add task</button>
+    ${isToday ? mustDoCard() : ""}
     ${lazyHtml(d, lazy, lazyD)}
     ${d === 6 ? checkSection() : ""}`;
 }
@@ -851,6 +868,96 @@ function viewStats(){
     <div class="card">${screen.filter(x => x.h != null).map(x => `<div class="hbar" style="${gvars(GRAD[6])}"><div class="top"><span>Week of ${fmtShort(x.mon)}</span><span>${Math.floor(x.h)}h ${Math.round((x.h%1)*60)}m</span></div><div class="track"><i style="width:${x.h/maxH*100}%"></i></div></div>`).join("")}</div>` : ""}`;
 }
 
+/* ---------- must do ----------
+   Important things that take more than a day: an optional due date, optional steps, a note.
+   They sit outside the daily tasks, so they never touch the water, streaks or stats. */
+const openTodos = () => (S.todos || []).filter(t => !t.done)
+  .sort((a, b) => (a.due || "9999") < (b.due || "9999") ? -1 : (a.due || "9999") > (b.due || "9999") ? 1 : a.made - b.made);
+function dueInfo(due){
+  if (!due) return null;
+  const d = fromKey(due), n = Math.round((d - fromKey(NOW.date))/864e5);
+  if (n < 0) return {txt: `overdue by ${-n} day${n === -1 ? "" : "s"}`, late: true};
+  if (n === 0) return {txt: "due today", soon: true};
+  if (n === 1) return {txt: "due tomorrow", soon: true};
+  if (n < 7) return {txt: `due ${DAYS[dow(d)]}`};
+  return {txt: `due ${fmt(d)}`};
+}
+function todoMeta(t){
+  const di = dueInfo(t.due), steps = t.steps || [], got = steps.filter(x => x.done).length;
+  return [di ? `<span class="${di.late ? "late" : di.soon ? "soon" : ""}">${di.txt}</span>` : "", steps.length ? `${got}/${steps.length} steps` : ""].filter(Boolean).join(" · ");
+}
+function todoCard(t, i){
+  const open = ui.todoOpen === t.id, steps = t.steps || [], got = steps.filter(x => x.done).length;
+  const a = `data-id="${t.id}"`, di = dueInfo(t.due);
+  return `<div class="tile todo${di && di.late ? " late" : ""}${ui.just === t.id ? " pulse" : ""}" style="${gvars(GRAD[i % GRAD.length])}">
+    <div class="trow">
+      ${taskIcon(t)}
+      <button class="lbl" data-act="tdopen" ${a}><span class="name">${esc(t.name)}</span><span class="tag">${todoMeta(t) || (open ? "" : "tap for more")}</span></button>
+      <button class="tdtick" data-act="tddone" ${a} aria-label="Done">${chk}</button>
+    </div>
+    ${steps.length ? `<div class="tdbar"><div class="track"><i style="width:${got/steps.length*100}%"></i></div></div>` : ""}
+    ${open ? `<div class="tdbody">
+      ${steps.length ? `<div class="pills">${steps.map((x, k) => `<button class="pill${x.done ? " done" : ""}${ui.just === t.id + ":" + k ? " pop" : ""}" data-act="tdstep" ${a} data-i="${k}">${chk}${esc(x.t)}</button>`).join("")}</div>` : ""}
+      ${steps.length && got === steps.length ? `<p class="hint">Every step's done. Tick the circle to finish it off.</p>` : ""}
+      ${t.note ? `<p class="tdnote">${esc(t.note)}</p>` : ""}
+      <div class="tdbtns"><button class="btn" data-act="tdedit" ${a}>Edit</button><button class="btn danger" data-act="tddel" ${a}>Remove</button></div>
+    </div>` : ""}
+  </div>`;
+}
+function viewTodo(){
+  const list = openTodos(), done = (S.todos || []).filter(t => t.done).sort((a, b) => a.done < b.done ? 1 : -1);
+  const late = list.filter(t => (dueInfo(t.due) || {}).late).length;
+  return hero("Must do", list.length ? `${list.length} on the go${late ? ` · ${late} overdue` : ""}` : "Important things that take more than a day") + `
+    <div class="tiles lift">${list.length ? list.map(todoCard).join("") :
+      `<div class="card empty">Nothing here yet.<br>Add the important things that can't be done in a day, like a big job, an appointment to book or a project.</div>`}</div>
+    <button class="btn primary addbtn" data-act="tdadd">+ Add a must do</button>
+    ${done.length ? `<h2>Done <small>${done.length}</small></h2>
+      <div class="card">${(ui.todoDone ? done : done.slice(0, 3)).map(t => `<div class="setrow tddone"><span><s>${esc(t.name)}</s><small>finished ${fmt(fromKey(t.done))}</small></span>
+        <button class="chip" data-act="tdundo" data-id="${t.id}">undo</button></div>`).join("")}
+      ${done.length > 3 ? `<button class="btn" data-act="tdmore">${ui.todoDone ? "Show less" : `Show all ${done.length}`}</button>` : ""}</div>` : ""}`;
+}
+/* the reminder on Today */
+function mustDoCard(){
+  const list = openTodos();
+  if (!list.length) return "";
+  return `<button class="card mustcard" data-act="tab" data-t="todo">
+    <span class="f">Must do · ${list.length} on the go</span>
+    ${list.slice(0, 3).map(t => `<span class="mrow"><span>${esc(t.name)}</span><small>${todoMeta(t)}</small></span>`).join("")}
+    ${list.length > 3 ? `<small class="more">+ ${list.length - 3} more</small>` : ""}
+  </button>`;
+}
+function todoSheet(t){
+  const st = t ? {name:t.name, due:t.due || "", steps:(t.steps || []).map(x => x.t).join("\n"), note:t.note || ""} : {name:"", due:"", steps:"", note:""};
+  const m = document.createElement("div");
+  m.className = "modal";
+  m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${t ? "Edit" : "Add a must do"}">
+    <h3>${t ? "Edit" : "Add a must do"}</h3>
+    <div class="formgrid">
+      <label class="f">What needs doing<input id="td-name" type="text" value="${esc(st.name)}" placeholder="e.g. Sort out the car rego"></label>
+      <label class="f">Due date (optional)<input id="td-due" type="date" value="${esc(st.due)}"></label>
+      <label class="f">Steps (optional, one per line)<textarea id="td-steps" rows="4" placeholder="Find the papers&#10;Book the inspection&#10;Pay it">${esc(st.steps)}</textarea></label>
+      <label class="f">Note (optional)<textarea id="td-note" rows="2" placeholder="Anything to remember">${esc(st.note)}</textarea></label>
+    </div>
+    <button class="btn primary" data-r="save">${t ? "Save" : "Add"}</button>
+    <button class="btn" data-r="cancel">Cancel</button></div>`;
+  m.addEventListener("click", e => {
+    const b = e.target.closest("[data-r]");
+    if (e.target === m || (b && b.dataset.r === "cancel")){ m.remove(); return; }
+    if (!b) return;
+    const name = m.querySelector("#td-name").value.trim();
+    if (!name){ toast("Give it a name first"); m.querySelector("#td-name").focus(); return; }
+    const lines_ = lines(m.querySelector("#td-steps").value);
+    const old = t ? t.steps || [] : [];
+    const steps = lines_.map(x => ({t: x, done: !!(old.find(o => o.t === x) || {}).done}));   // keep ticks on steps that stayed
+    const rec = t || {id: uid(), made: Date.now()};
+    Object.assign(rec, {name, due: m.querySelector("#td-due").value || "", steps, note: m.querySelector("#td-note").value.trim()});
+    if (!t){ S.todos = S.todos || []; S.todos.push(rec); }
+    save(); m.remove(); render(); toast(t ? "Saved" : "Added");
+  });
+  document.body.appendChild(m);
+  if (!t) setTimeout(() => { const i = m.querySelector("#td-name"); if (i) i.focus(); }, 50);
+}
+
 /* ---------- edit ---------- */
 function itemEditor(it, idx, len){
   const open = ui.open === it.id;
@@ -903,7 +1010,7 @@ function viewEdit(){
     </div>
 
     <h2>Your data</h2>
-    <p class="hint" style="margin:-4px 4px 12px">Everything lives on this phone only. A backup saves all of it in one file: your tasks, every day you've ticked, lazy days, logged distances and times, weekly checks and settings.</p>
+    <p class="hint" style="margin:-4px 4px 12px">Everything lives on this phone only. A backup saves all of it in one file: your tasks, every day you've ticked, must dos, lazy days, logged distances and times, weekly checks and settings.</p>
     <button class="btn" data-act="backup">Back up everything (save a file)</button>
     <button class="btn" data-act="restore">Restore from a backup</button>
     <button class="btn danger" data-act="clearweek">Clear this week's ticks</button>
@@ -1157,6 +1264,7 @@ const SKY = (() => {
 /* ---------- render ---------- */
 const TABS = [
   ["today","Today",'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'],
+  ["todo","Must do",'<path d="M5 21V4M5 4h12l-2.5 4L17 12H5"/>'],
   ["week","Week",'<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/>'],
   ["stats","Stats",'<path d="M4 20V11M10 20V4M16 20v-7M22 20H2"/>'],
   ["edit","Edit",'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>']
@@ -1166,7 +1274,7 @@ function render(){
   const g = GRAD[0];
   const root = document.documentElement.style;
   root.setProperty("--g1", g[0]); root.setProperty("--g2", g[1]);
-  app.innerHTML = {today:viewDay, week:viewWeek, stats:viewStats, edit:viewEdit}[ui.tab]();
+  app.innerHTML = {today:viewDay, todo:viewTodo, week:viewWeek, stats:viewStats, edit:viewEdit}[ui.tab]();
   if (ui.enter != null){
     [...app.children].forEach((c, i) => c.style.setProperty("--n", Math.min(i, 6)));
     app.dataset.in = ui.enter < 0 ? "l" : ui.enter > 0 ? "r" : "d";
@@ -1398,6 +1506,26 @@ document.addEventListener("click", async e => {
       ui.day = Number(el.dataset.d); ui.scrollId = el.dataset.check ? "weeklycheck" : null; go("today");
       break;
     case "day": stepDay(Number(el.dataset.n)); break;
+    case "tdadd": todoSheet(); break;
+    case "tdedit": todoSheet(S.todos.find(t => t.id === el.dataset.id)); break;
+    case "tdopen": ui.todoOpen = ui.todoOpen === el.dataset.id ? null : el.dataset.id; render(); break;
+    case "tdmore": ui.todoDone = !ui.todoDone; render(); break;
+    case "tdstep": {
+      const t = S.todos.find(x => x.id === el.dataset.id), st = t.steps[Number(el.dataset.i)];
+      st.done = !st.done; if (st.done) ui.just = t.id + ":" + el.dataset.i;
+      save(); render(); break;
+    }
+    case "tddone": {
+      const t = S.todos.find(x => x.id === el.dataset.id);
+      t.done = NOW.date; if (ui.todoOpen === t.id) ui.todoOpen = null;
+      save(); render(); toast(`Done: ${t.name} 💧`); break;
+    }
+    case "tdundo": { const t = S.todos.find(x => x.id === el.dataset.id); delete t.done; ui.just = t.id; save(); render(); break; }
+    case "tddel": {
+      const t = S.todos.find(x => x.id === el.dataset.id);
+      if (await ask(`Remove “${t.name}”?`, "Remove")){ S.todos = S.todos.filter(x => x !== t); save(); render(); }
+      break;
+    }
     case "lazy": {
       const on = el.dataset.v === "1";
       if (on && lazyDayIn(ui.week) != null) break;
@@ -1540,7 +1668,8 @@ function backupSummary(data, verb = "Backed up"){
     if (Object.keys(r.c || {}).length || r.lazy || Object.keys(r.n || {}).length || Object.keys(r.m || {}).length) days++;
   }
   const n = (data.items || []).length;
-  return `${verb} ${n} task${n === 1 ? "" : "s"} and ${days} day${days === 1 ? "" : "s"}`;
+  const t = (data.todos || []).length;
+  return `${verb} ${n} task${n === 1 ? "" : "s"}, ${days} day${days === 1 ? "" : "s"}${t ? ` and ${t} must do${t === 1 ? "" : "s"}` : ""}`;
 }
 document.getElementById("restoreFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = "";
