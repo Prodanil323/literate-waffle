@@ -1669,7 +1669,8 @@ function backupSummary(data, verb = "Backed up"){
   }
   const n = (data.items || []).length;
   const t = (data.todos || []).length;
-  return `${verb} ${n} task${n === 1 ? "" : "s"}, ${days} day${days === 1 ? "" : "s"}${t ? ` and ${t} must do${t === 1 ? "" : "s"}` : ""}`;
+  const bits = [`${n} task${n === 1 ? "" : "s"}`, `${days} day${days === 1 ? "" : "s"}`].concat(t ? [`${t} must do${t === 1 ? "" : "s"}`] : []);
+  return `${verb} ${bits.slice(0, -1).join(", ")} and ${bits[bits.length - 1]}`;
 }
 document.getElementById("restoreFile").addEventListener("change", async e => {
   const f = e.target.files[0]; e.target.value = "";
