@@ -926,21 +926,46 @@ function mustDoCard(){
     ${list.length > 3 ? `<small class="more">+ ${list.length - 3} more</small>` : ""}
   </button>`;
 }
+/* quick picks for a must do's due date */
+const DUE_QUICK = [["none","No date"],["tomorrow","Tomorrow"],["3days","In 3 days"],["endweek","End of week"],["1week","In a week"],["2weeks","In 2 weeks"],["endmonth","End of month"],["custom","Custom…"]];
+function quickDue(k){
+  const t = fromKey(NOW.date);
+  const d = k === "tomorrow" ? addDays(t, 1) : k === "3days" ? addDays(t, 3) : k === "1week" ? addDays(t, 7) : k === "2weeks" ? addDays(t, 14)
+    : k === "endweek" ? addDays(mondayOf(t), 6) : k === "endmonth" ? new Date(t.getFullYear(), t.getMonth() + 1, 0) : null;
+  return d ? keyOf(d) : "";
+}
+const dueText = due => due ? `Due ${DAYS[dow(fromKey(due))]} ${fmt(fromKey(due))}` : "No due date";
 function todoSheet(t){
   const st = t ? {name:t.name, due:t.due || "", steps:(t.steps || []).map(x => x.t).join("\n"), note:t.note || ""} : {name:"", due:"", steps:"", note:""};
+  // which quick pick matches the current date (an odd date shows as Custom)
+  let pick = st.due ? (DUE_QUICK.find(([k]) => k !== "custom" && k !== "none" && quickDue(k) === st.due) || ["custom"])[0] : "none";
   const m = document.createElement("div");
   m.className = "modal";
   m.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-label="${t ? "Edit" : "Add a must do"}">
     <h3>${t ? "Edit" : "Add a must do"}</h3>
     <div class="formgrid">
       <label class="f">What needs doing<input id="td-name" type="text" value="${esc(st.name)}" placeholder="e.g. Sort out the car rego"></label>
-      <label class="f">Due date (optional)<input id="td-due" type="date" value="${esc(st.due)}"></label>
+      <div><span class="f">Due</span>
+        <div class="qtags" id="td-quick">${DUE_QUICK.map(([k, l]) => `<button class="qt${k === pick ? " on" : ""}" data-due="${k}">${l}</button>`).join("")}</div>
+        <input id="td-due" type="date" value="${esc(st.due)}" style="margin-top:10px${pick === "custom" ? "" : ";display:none"}">
+        <p class="hint" id="td-duelbl" style="margin:8px 2px 0">${dueText(st.due)}</p></div>
       <label class="f">Steps (optional, one per line)<textarea id="td-steps" rows="4" placeholder="Find the papers&#10;Book the inspection&#10;Pay it">${esc(st.steps)}</textarea></label>
       <label class="f">Note (optional)<textarea id="td-note" rows="2" placeholder="Anything to remember">${esc(st.note)}</textarea></label>
     </div>
     <button class="btn primary" data-r="save">${t ? "Save" : "Add"}</button>
     <button class="btn" data-r="cancel">Cancel</button></div>`;
+  const dueIn = () => m.querySelector("#td-due"), showDue = () => { m.querySelector("#td-duelbl").textContent = dueText(dueIn().value); };
+  m.addEventListener("input", e => { if (e.target.id === "td-due") showDue(); });
   m.addEventListener("click", e => {
+    const q = e.target.closest("[data-due]");
+    if (q){
+      pick = q.dataset.due;
+      m.querySelectorAll("#td-quick .qt").forEach(x => x.classList.toggle("on", x === q));
+      if (pick !== "custom") dueIn().value = quickDue(pick);
+      else if (!dueIn().value) dueIn().value = quickDue("1week");
+      dueIn().style.display = pick === "custom" ? "" : "none";
+      showDue(); return;
+    }
     const b = e.target.closest("[data-r]");
     if (e.target === m || (b && b.dataset.r === "cancel")){ m.remove(); return; }
     if (!b) return;
